@@ -7,8 +7,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="E2E_HEALER_", env_file=".env", extra="ignore")
 
-    openai_api_key: str = Field(default="", description="OpenAI API key")
-    openai_model: str = Field(default="gpt-4o-2024-08-06", description="Structured-Outputs-capable model")
+    nvidia_api_key: str = Field(default="", description="NVIDIA NIM API key")
+    nvidia_base_url: str = Field(
+        default="https://integrate.api.nvidia.com/v1",
+        description="NVIDIA OpenAI-compatible endpoint",
+    )
+    nvidia_model: str = Field(default="openai/gpt-oss-120b", description="Structured-Outputs-capable model")
+    nvidia_max_tokens: int = Field(default=4096, description="completion token cap (reasoning models need headroom)")
     max_loops: int = Field(default=3, description="repair loop cap (Router termination)")
     playwright_cmd: str = Field(default="npx playwright test", description="Playwright invocation")
     log_level: str = Field(default="INFO")

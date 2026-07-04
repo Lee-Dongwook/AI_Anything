@@ -1,4 +1,9 @@
-"""OpenAI client wrapper enforcing Structured Outputs for deterministic patches."""
+"""NVIDIA NIM client wrapper enforcing Structured Outputs for deterministic patches.
+
+Uses NVIDIA's OpenAI-compatible endpoint, so the OpenAI SDK drives it unchanged apart
+from ``base_url``. The default model (``openai/gpt-oss-120b``) is a reasoning model, so
+completions are given explicit token headroom to leave room for its ``reasoning_content``.
+"""
 
 import structlog
 from openai import OpenAI
@@ -9,14 +14,15 @@ from app.schemas import PatchOutput
 
 logger = structlog.get_logger(__name__)
 
-_client = OpenAI(api_key=settings.openai_api_key)
+_client = OpenAI(base_url=settings.nvidia_base_url, api_key=settings.nvidia_api_key)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def generate_diagnosis(system_prompt: str, user_prompt: str) -> str:
     """Call the LLM for a free-text failure diagnosis (the Diagnoser node)."""
     completion = _client.chat.completions.create(
-        model=settings.openai_model,
+        model=settings.nvidia_model,
+        max_tokens=settings.nvidia_max_tokens,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -37,7 +43,8 @@ def generate_patch(system_prompt: str, user_prompt: str) -> PatchOutput:
     is responsible for the feedback loop when retries are exhausted.
     """
     completion = _client.beta.chat.completions.parse(
-        model=settings.openai_model,
+        model=settings.nvidia_model,
+        max_tokens=settings.nvidia_max_tokens,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
