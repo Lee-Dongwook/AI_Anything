@@ -1,5 +1,5 @@
 name: "E2E Self-Heal"
-description: "Run Playwright E2E tests and auto-heal broken selectors with an LLM. Produces a patch + summary; PR creation is left to the caller."
+description: "Run Playwright E2E tests and auto-heal broken selectors with an LLM."
 branding:
   icon: "activity"
   color: "green"
