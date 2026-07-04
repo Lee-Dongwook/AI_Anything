@@ -5,19 +5,32 @@ build/
 dist/
 wheels/
 *.egg-info
-*.jsonl
 
 # Virtual environments
-.venv
+.venv/
 
-# Environment variables
+# Environment variables (keep .env.example tracked)
 .env
-.env.development
-.env.staging
-.env.production
+.env.*
+!.env.example
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.pyright/
+
+# Playwright / test-run artifacts
+node_modules/
+playwright-report/
+test-results/
+playwright.log
+
+# Repair-run outputs
+repair-summary.json
+
+# Logs
+*.jsonl
 
 # Misc
 *.ipynb
-
-# Reports
-evals/reports/
+.DS_Store
