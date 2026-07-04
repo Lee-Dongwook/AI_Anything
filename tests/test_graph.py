@@ -12,6 +12,7 @@ def _state(**overrides) -> AgentState:
         "current_code": "",
         "error_log": "",
         "dom_diff_context": [],
+        "dom_snapshot": "",
         "analysis_report": "",
         "patch_instructions": {},
         "verification_report": {},

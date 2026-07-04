@@ -13,6 +13,7 @@ from rich.syntax import Syntax
 from app.config import settings
 from app.graph import build_graph
 from app.logging import configure_logging
+from app.preprocess.aria_snapshot import read_failure_snapshot
 from app.preprocess.diff_ast_analyzer import analyze_diff
 from app.preprocess.error_log_parser import parse_error_log
 from app.preprocess.failure_scanner import scan_failing_tests
@@ -66,6 +67,7 @@ def _heal_file(
         "current_code": original_code,
         "error_log": parse_error_log(raw_log),
         "dom_diff_context": dom_diff_context,
+        "dom_snapshot": read_failure_snapshot(Path(settings.test_results_dir)),
         "analysis_report": "",
         "patch_instructions": {},
         "verification_report": {},

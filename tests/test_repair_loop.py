@@ -19,6 +19,7 @@ def _initial_state() -> AgentState:
         "current_code": ORIGINAL,
         "error_log": "Error: Timeout\nwaiting for locator('#old')",
         "dom_diff_context": [],
+        "dom_snapshot": "",
         "analysis_report": "",
         "patch_instructions": {},
         "verification_report": {},

@@ -30,6 +30,7 @@ def _state(selector: str = "#new", **overrides) -> AgentState:
         "current_code": PATCHED,
         "error_log": "",
         "dom_diff_context": [],
+        "dom_snapshot": "",
         "analysis_report": "diagnosis",
         "patch_instructions": PatchOutput(instructions=[_instruction(selector)]).model_dump(),
         "verification_report": {},
