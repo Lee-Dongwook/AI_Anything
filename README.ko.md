@@ -74,6 +74,36 @@ fixed after 0 loop(s)
 
 직접 재현: [`examples/README.md`](examples/README.md) 참고.
 
+## 실무 활용 사례
+
+랜딩 페이지 CTA 테스트를 대상으로 한 실제 실행 결과입니다. UI 리팩터로 버튼 id가
+`#enter-demo-btn` → `#demo-cta-btn`으로 바뀌면서 `demo-cta.spec.ts`가 `locator.click`에서
+실패하기 시작했습니다. 파일을 지정하자 엔진이 `git diff`에 대조해 원인을 진단하고,
+**깨진 셀렉터만** 패치한 뒤(`toHaveURL` 단언은 그대로 유지) 스위트를 다시 실행해 첫 시도에
+통과했습니다 — NVIDIA NIM(`integrate.api.nvidia.com`, `openai/gpt-oss-120b`)에서 엔드투엔드로:
+
+![실무 실행: 이름이 바뀐 CTA 셀렉터 진단 → 패치 → 재실행 → 0루프 만에 치유](https://raw.githubusercontent.com/Lee-Dongwook/E2E-Self-Heal/main/docs/usecase-demo-cta.png)
+
+```text
+playwright_run_finished     passed=False                    # 원래 셀렉터가 타임아웃
+diagnoser_started           loop_count=0
+diagnoser_finished
+patch_generator_finished    instruction_count=1
+test_runner_started
+playwright_run_finished     passed=True
+repair_run_finished         is_success=True loop_count=0
+fixed after 0 loop(s)
+```
+
+```diff
+  test('guest enters the demo workspace from the landing CTA', async ({ page }) => {
+    await page.goto('/')
+-   await page.click('#enter-demo-btn')
++   await page.click('#demo-cta-btn')
+    await expect(page).toHaveURL(/\/w\//)   // 단언은 그대로 유지
+  })
+```
+
 ## 설치
 
 Python 3.13+ 과 저장소 내 Playwright(Node) 프로젝트가 필요합니다.

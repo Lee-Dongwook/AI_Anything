@@ -74,6 +74,37 @@ fixed after 0 loop(s)
 
 Reproduce it yourself: see [`examples/README.md`](examples/README.md).
 
+## In practice
+
+A real run against a landing-page CTA test. A UI refactor renamed the button id
+`#enter-demo-btn` → `#demo-cta-btn`, so `demo-cta.spec.ts` started failing on
+`locator.click`. Pointed at the file, the engine diagnosed the break against the `git diff`,
+patched **only the broken selector** (leaving the `toHaveURL` assertion untouched), re-ran
+the suite, and passed on the first attempt — end to end on NVIDIA NIM
+(`integrate.api.nvidia.com`, `openai/gpt-oss-120b`):
+
+![Real-world run: diagnose the renamed CTA selector, patch it, re-run, fixed after 0 loops](https://raw.githubusercontent.com/Lee-Dongwook/E2E-Self-Heal/main/docs/usecase-demo-cta.png)
+
+```text
+playwright_run_finished     passed=False                    # original selector times out
+diagnoser_started           loop_count=0
+diagnoser_finished
+patch_generator_finished    instruction_count=1
+test_runner_started
+playwright_run_finished     passed=True
+repair_run_finished         is_success=True loop_count=0
+fixed after 0 loop(s)
+```
+
+```diff
+  test('guest enters the demo workspace from the landing CTA', async ({ page }) => {
+    await page.goto('/')
+-   await page.click('#enter-demo-btn')
++   await page.click('#demo-cta-btn')
+    await expect(page).toHaveURL(/\/w\//)   // assertion left untouched
+  })
+```
+
 ## Install
 
 Requires Python 3.13+ and a Playwright project (Node) in your repo.
