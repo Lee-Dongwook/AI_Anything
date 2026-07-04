@@ -2,7 +2,7 @@
 
 [English](README.md) · **한국어**
 
-[![CI](https://github.com/Lee-Dongwook/AI_Anything/actions/workflows/ci.yml/badge.svg)](https://github.com/Lee-Dongwook/AI_Anything/actions/workflows/ci.yml)
+[![CI](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml/badge.svg)](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -111,7 +111,7 @@ uv run e2e-healer tests/example.spec.ts --app-url http://localhost:4173
 ```yaml
 - name: E2E self-heal
   id: heal
-  uses: Lee-Dongwook/AI_Anything@v0.1.0
+  uses: Lee-Dongwook/E2E-Self-Heal@v0.1.0
   with:
     test-path: tests/example.spec.ts
     nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}

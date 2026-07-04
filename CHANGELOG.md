@@ -25,5 +25,5 @@ All notable changes to this project are documented here. The format is based on
 - LLM provider migrated from OpenAI to NVIDIA NIM (`openai/gpt-oss-120b`) via the
   OpenAI-compatible endpoint; Structured Outputs guardrail retained.
 
-[Unreleased]: https://github.com/Lee-Dongwook/AI_Anything/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Lee-Dongwook/AI_Anything/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Lee-Dongwook/E2E-Self-Heal/releases/tag/v0.1.0
