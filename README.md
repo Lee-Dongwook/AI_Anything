@@ -17,6 +17,8 @@ a **CI GitHub Action** that opens a patch PR.
 > **Scope guardrail:** the engine only fixes **failing locators and wait conditions**. It
 > never touches assertions or test logic, and every patch stays human-reviewable.
 
+![e2e-healer demo — diagnose, verify against the live DOM, re-run, fixed](https://raw.githubusercontent.com/Lee-Dongwook/E2E-Self-Heal/main/docs/demo.gif)
+
 ## How it works
 
 Four layers drive a LangGraph repair loop:

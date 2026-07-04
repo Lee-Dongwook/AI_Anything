@@ -16,6 +16,8 @@
 > 단언(assertion)이나 테스트 로직은 절대 건드리지 않으며, 패치는 항상 사람이 검토할 수
 > 있는 형태로 남습니다.
 
+![e2e-healer 데모 — 진단, 실제 DOM 검증, 재실행, 치유 완료](https://raw.githubusercontent.com/Lee-Dongwook/E2E-Self-Heal/main/docs/demo.gif)
+
 ## 동작 방식
 
 네 개의 계층이 LangGraph 복구 루프를 구동합니다.
