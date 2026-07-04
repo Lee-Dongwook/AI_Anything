@@ -58,6 +58,7 @@ runs:
       env:
         E2E_HEALER_NVIDIA_API_KEY: ${{ inputs.nvidia-api-key }}
         E2E_HEALER_PLAYWRIGHT_CMD: ${{ inputs.playwright-cmd }}
+        E2E_HEALER_SANDBOX_MODE: strict
       run: |
         set +e
         cd "${{ inputs.working-directory }}"

@@ -1,6 +1,6 @@
 # Sandbox and Permission Model
 
-Status: draft policy for future enforcement.
+Status: initial policy implemented in `app/sandbox.py`.
 
 This project edits Playwright test files automatically, so the default security posture
 should be: read enough context to diagnose a failure, write only the selected repair
@@ -34,31 +34,33 @@ All paths should be resolved before access checks.
 
 ## Suggested Configuration
 
-These names are a proposed public surface, not implemented yet.
+These environment variables are implemented via `app.config.Settings`.
 
 ```text
 E2E_HEALER_SANDBOX_MODE=strict      # strict | relaxed | off
 E2E_HEALER_WORKSPACE_ROOT=.         # resolved from the process cwd by default
-E2E_HEALER_WRITE_GLOBS=**/*.spec.ts,**/*.spec.tsx,**/*.test.ts,**/*.test.tsx
+E2E_HEALER_WRITE_GLOBS=*.spec.js,*.spec.jsx,*.spec.ts,*.spec.tsx,*.test.js,*.test.jsx,*.test.ts,*.test.tsx,**/*.spec.js,**/*.spec.jsx,**/*.spec.ts,**/*.spec.tsx,**/*.test.js,**/*.test.jsx,**/*.test.ts,**/*.test.tsx
 E2E_HEALER_DENY_GLOBS=.env*,.git/**,.github/**,node_modules/**,.venv/**
 E2E_HEALER_ALLOW_TEMP_HELPER=true   # permits .e2e-healer-verify.mjs during selector checks
 ```
 
 Recommended modes:
 
-- `strict`: default for CI. Enforce read/write/execute checks and fail closed.
-- `relaxed`: default for local development if strict mode blocks a legitimate fixture.
+- `strict`: used by the GitHub Action. Enforce workspace, write-glob, deny-glob, and
+  command checks.
+- `relaxed`: default for local development. Enforce write-glob, deny-glob, and command
+  checks without requiring every test fixture to sit under the workspace root.
 - `off`: debugging escape hatch; should print a warning.
 
-## Implementation Sketch
+## Implementation Notes
 
-Add an `app/sandbox.py` module with a `SandboxPolicy` object and small guard functions:
+`app/sandbox.py` exposes small guard functions:
 
 - `assert_read_allowed(path: Path) -> None`
 - `assert_write_allowed(path: Path, reason: str) -> None`
 - `assert_command_allowed(argv: list[str]) -> None`
 
-Then call those guards before `read_text()`, `atomic_write()`, selector helper creation,
+These guards are called before `read_text()`, `atomic_write()`, selector helper creation,
 and subprocess execution. Keep `subprocess.run()` shell-free; the current `shlex.split()`
 approach is a good baseline because command chaining is not interpreted by a shell.
 

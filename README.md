@@ -200,6 +200,11 @@ All settings use the `E2E_HEALER_` prefix (see [`.env.example`](.env.example)):
 | `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | Toggle live-DOM selector verification          |
 | `E2E_HEALER_APP_URL`           | —                                     | URL the Selector Verifier loads (empty = skip) |
 | `E2E_HEALER_NODE_CMD`          | `node`                                | Node executable for the verifier               |
+| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`, `relaxed`, or `off`                  |
+| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | Root for strict path checks                    |
+| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | Writable test-file globs                       |
+| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | Paths blocked by the sandbox                   |
+| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | Permit selector verifier helper file           |
 
 > The `--app-url` CLI flag overrides `E2E_HEALER_APP_URL`. To actually run selector
 > verification locally, the Playwright project needs browsers installed

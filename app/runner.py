@@ -10,6 +10,7 @@ import subprocess
 import structlog
 
 from app.config import settings
+from app.sandbox import assert_command_allowed
 
 logger = structlog.get_logger(__name__)
 
@@ -21,6 +22,7 @@ def run_playwright(test_path: str = "") -> tuple[bool, str]:
     Error Log Parser sees the full failure output.
     """
     cmd = [*shlex.split(settings.playwright_cmd), *([test_path] if test_path else [])]
+    assert_command_allowed(cmd, reason="playwright")
     logger.info("playwright_run_started", cmd=cmd)
     result = subprocess.run(cmd, capture_output=True, text=True)
     passed = result.returncode == 0

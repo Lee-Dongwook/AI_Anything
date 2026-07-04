@@ -200,6 +200,11 @@ uv run e2e-healer tests/example.spec.ts --app-url http://localhost:4173
 | `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | 패치 셀렉터의 실제 DOM 검증 on/off                  |
 | `E2E_HEALER_APP_URL`           | —                                     | Selector Verifier가 로드할 앱 URL(비면 검증 건너뜀) |
 | `E2E_HEALER_NODE_CMD`          | `node`                                | 검증기 실행에 쓰는 Node 실행 파일                   |
+| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`, `relaxed`, `off` 중 하나                  |
+| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | strict 모드의 경로 검사 루트                        |
+| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | 쓸 수 있는 테스트 파일 glob                         |
+| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | 샌드박스가 차단하는 경로                            |
+| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | 셀렉터 검증 임시 helper 파일 허용                   |
 
 > `--app-url` CLI 플래그로 `E2E_HEALER_APP_URL`을 덮어쓸 수 있습니다. 로컬에서 셀렉터 검증을
 > 실제로 돌리려면 Playwright 프로젝트에 브라우저가 설치돼 있어야 합니다

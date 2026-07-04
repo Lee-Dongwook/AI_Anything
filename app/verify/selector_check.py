@@ -14,6 +14,7 @@ import structlog
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.config import settings
+from app.sandbox import assert_command_allowed, assert_write_allowed
 
 logger = structlog.get_logger(__name__)
 
@@ -50,10 +51,13 @@ _HELPER_FILENAME = ".e2e-healer-verify.mjs"
 def _run_helper(url: str, selectors: list[str]) -> dict[str, int]:
     """Run the Node helper once and parse its JSON output. Retries on transient failure."""
     script_path = Path.cwd() / _HELPER_FILENAME  # in cwd so node resolves @playwright/test
+    assert_write_allowed(script_path, reason="selector_verifier_helper")
     script_path.write_text(_HELPER_SCRIPT)
     try:
+        cmd = [settings.node_cmd, str(script_path), url, json.dumps(selectors)]
+        assert_command_allowed(cmd, reason="selector_verifier")
         result = subprocess.run(
-            [settings.node_cmd, str(script_path), url, json.dumps(selectors)],
+            cmd,
             capture_output=True,
             text=True,
             timeout=90,

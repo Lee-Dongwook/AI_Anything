@@ -4,6 +4,8 @@ import os
 import tempfile
 from pathlib import Path
 
+from app.sandbox import assert_write_allowed
+
 
 def atomic_write(path: Path, content: str) -> None:
     """Write ``content`` to ``path`` atomically.
@@ -11,6 +13,7 @@ def atomic_write(path: Path, content: str) -> None:
     Writes to a temp file in the same directory then ``os.replace`` so a crash mid-write
     never leaves a half-patched test file on disk.
     """
+    assert_write_allowed(path, reason="atomic_write")
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=path.suffix)
     try:
         with os.fdopen(fd, "w") as handle:

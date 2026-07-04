@@ -33,6 +33,30 @@ class Settings(BaseSettings):
         default="test-results",
         description="Playwright output dir holding error-context.md failure snapshots",
     )
+    sandbox_mode: str = Field(
+        default="relaxed",
+        description="sandbox mode: strict, relaxed, or off",
+    )
+    workspace_root: str = Field(
+        default=".",
+        description="root directory for strict sandbox path checks",
+    )
+    write_globs: str = Field(
+        default="*.spec.js,*.spec.jsx,*.spec.ts,*.spec.tsx,"
+        "*.test.js,*.test.jsx,*.test.ts,*.test.tsx,"
+        "**/*.spec.js,**/*.spec.jsx,**/*.spec.ts,**/*.spec.tsx,"
+        "**/*.test.js,**/*.test.jsx,**/*.test.ts,**/*.test.tsx",
+        description="comma-separated writable test-file globs",
+    )
+    deny_globs: str = Field(
+        default=".env,.env.*,**/.env,**/.env.*,.git/**,.github/**,"
+        "node_modules/**,.venv/**,uv.lock,package-lock.json,pnpm-lock.yaml,yarn.lock",
+        description="comma-separated path globs denied by the sandbox",
+    )
+    allow_temp_helper: bool = Field(
+        default=True,
+        description="allow the temporary selector verifier helper file",
+    )
     log_level: str = Field(default="INFO")
 
 

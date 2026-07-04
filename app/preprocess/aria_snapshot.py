@@ -11,6 +11,8 @@ from pathlib import Path
 
 import structlog
 
+from app.sandbox import SandboxViolation, assert_read_allowed
+
 logger = structlog.get_logger(__name__)
 
 # The "# Page snapshot" section holds a ```yaml ... ``` fenced ARIA tree.
@@ -30,12 +32,22 @@ def read_failure_snapshot(results_dir: Path) -> str:
     """
     if not results_dir.exists():
         return ""
+    try:
+        assert_read_allowed(results_dir)
+    except SandboxViolation as exc:
+        logger.warning("failure_snapshot_sandbox_denied", path=str(results_dir), error=str(exc))
+        return ""
 
-    contexts = sorted(
-        results_dir.rglob("*error-context*.md"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
+    contexts = []
+    for path in results_dir.rglob("*error-context*.md"):
+        try:
+            assert_read_allowed(path)
+        except SandboxViolation as exc:
+            logger.warning("failure_snapshot_file_sandbox_denied", path=str(path), error=str(exc))
+            continue
+        contexts.append(path)
+
+    contexts = sorted(contexts, key=lambda p: p.stat().st_mtime, reverse=True)
     if not contexts:
         return ""
 
