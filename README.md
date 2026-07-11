@@ -1,8 +1,8 @@
 # AI-Driven E2E Test Self-Healing Engine
 
-<!-- language: **English** · [한국어](README.ko.md) · [日本語](README.ja.md) -->
+<!-- language: **English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md) -->
 
-**English** · [한국어](README.ko.md) · [日本語](README.ja.md)
+**English** · [한국어](README.ko.md) · [日本語](README.ja.md) · [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml/badge.svg)](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
@@ -66,6 +66,49 @@ Four layers drive a LangGraph repair loop:
 
 See [`docs/design.md`](docs/design.md) for the full design.
 
+## Usage (CI / GitHub Action)
+
+The flagship workflow: run your suite and auto-heal on failure, opening a patch PR for review:
+
+```yaml
+- name: E2E self-heal
+  id: heal
+  uses: Lee-Dongwook/E2E-Self-Heal@v0.2.0
+  with:
+      test-path: tests/example.spec.ts
+      nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
+      diff-base: ${{ github.event.pull_request.base.sha }}
+      app-url: http://localhost:4173 # optional: enables live selector verification
+
+- name: Open patch PR
+  if: steps.heal.outputs.outcome == 'healed'
+  uses: peter-evans/create-pull-request@v6
+  with:
+      body-path: ${{ steps.heal.outputs.summary-path }}
+      branch: e2e-self-heal/${{ github.run_id }}
+```
+
+The action's `outcome` output is `passed` \| `healed` \| `unhealed` (heal mode) or `reviewed`
+(review mode). For a Playwright suite in a subdirectory, pass `working-directory:`. A
+**runnable self-demo** that heals this repo's own `examples/` project lives in
+[`ci/github-workflow.example.yml`](ci/github-workflow.example.yml).
+
+To run as a **PR review bot** instead, pass `mode: review` and post the findings as inline PR
+comments — a ready-to-copy workflow lives in
+[`ci/github-review-bot.example.yml`](ci/github-review-bot.example.yml):
+
+```yaml
+- name: E2E review
+  id: review
+  uses: Lee-Dongwook/E2E-Self-Heal@v0.2.0
+  with:
+      mode: review
+      test-path: tests/example.spec.ts
+      nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
+      diff-base: ${{ github.event.pull_request.base.sha }}
+# then read steps.review.outputs.review-path and post inline comments (see the example)
+```
+
 ## Demo (verified end-to-end)
 
 The [`examples/`](examples/) project reproduces a real break: the page's button id was
@@ -123,32 +166,37 @@ fixed after 0 loop(s)
 
 Requires Python 3.13+ and a Playwright project (Node) in your repo.
 
-```bash
-uv sync                 # or, once published: pipx install ai-driven-e2e
-cp .env.example .env    # then set E2E_HEALER_NVIDIA_API_KEY
-```
-
-Get a free NVIDIA NIM API key at [build.nvidia.com](https://build.nvidia.com/) (the default
-model is `openai/gpt-oss-120b`).
-
-### Run it on your own project (global CLI)
-
-Before publishing to PyPI, install the CLI globally straight from this repo — then `cd`
-into **any** real Playwright project and run `e2e-healer` there:
+**Recommended — one-line global install:**
 
 ```bash
-uv tool install /path/to/this/repo     # installs a global `e2e-healer` (isolated env)
-
-cd ~/work/your-real-web-app             # your actual Playwright suite
-export E2E_HEALER_NVIDIA_API_KEY=nvapi-...
-e2e-healer                              # heal the whole suite, in place
-e2e-healer tests/login.spec.ts --dry-run   # or preview a single spec, write nothing
+pipx install ai-driven-e2e
+# or, before PyPI release:
+uv tool install git+https://github.com/Lee-Dongwook/E2E-Self-Heal.git
 ```
 
-The CLI reads config from `E2E_HEALER_*` env vars (or a `.env` in the project dir), runs
-`npx playwright test` in the current directory, and exits `0` when everything is healed —
-so it drops into a real repo with no per-project setup. Re-run `uv tool install --force
-/path/to/this/repo` to pick up new changes.
+Then in any Playwright project:
+
+```bash
+cp .env.example .env    # set E2E_HEALER_NVIDIA_API_KEY
+e2e-healer tests/login.spec.ts
+```
+
+Get a free NVIDIA NIM API key at [build.nvidia.com](https://build.nvidia.com/) (default
+model `openai/gpt-oss-120b`).
+
+<details>
+<summary>Development install from a local clone</summary>
+
+```bash
+git clone https://github.com/Lee-Dongwook/E2E-Self-Heal.git
+cd E2E-Self-Heal
+uv sync --extra dev
+uv tool install --force .    # global `e2e-healer` from this checkout
+```
+
+Re-run `uv tool install --force .` after pulling changes.
+
+</details>
 
 ## Usage (CLI)
 
@@ -177,49 +225,6 @@ machine-readable `RepairSummary` to stdout (human output goes to stderr) so CI c
 on it. `e2e-healer <path>` is shorthand for `e2e-healer heal <path>`; `review` is a separate
 subcommand that emits a `ReviewReport` (findings anchored to the changed source line) and
 always exits `0` — the CI wrapper branches on `has_findings`.
-
-## Usage (CI / GitHub Action)
-
-Run the suite and auto-heal on failure, opening a patch PR for review:
-
-```yaml
-- name: E2E self-heal
-  id: heal
-  uses: Lee-Dongwook/E2E-Self-Heal@v0.2.0
-  with:
-    test-path: tests/example.spec.ts
-    nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
-    diff-base: ${{ github.event.pull_request.base.sha }}
-    app-url: http://localhost:4173 # optional: enables live selector verification
-
-- name: Open patch PR
-  if: steps.heal.outputs.outcome == 'healed'
-  uses: peter-evans/create-pull-request@v6
-  with:
-    body-path: ${{ steps.heal.outputs.summary-path }}
-    branch: e2e-self-heal/${{ github.run_id }}
-```
-
-The action's `outcome` output is `passed` \| `healed` \| `unhealed` (heal mode) or `reviewed`
-(review mode). For a Playwright suite in a subdirectory, pass `working-directory:`. A
-**runnable self-demo** that heals this repo's own `examples/` project lives in
-[`ci/github-workflow.example.yml`](ci/github-workflow.example.yml).
-
-To run as a **PR review bot** instead, pass `mode: review` and post the findings as inline PR
-comments — a ready-to-copy workflow lives in
-[`ci/github-review-bot.example.yml`](ci/github-review-bot.example.yml):
-
-```yaml
-- name: E2E review
-  id: review
-  uses: Lee-Dongwook/E2E-Self-Heal@v0.2.0
-  with:
-    mode: review
-    test-path: tests/example.spec.ts
-    nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
-    diff-base: ${{ github.event.pull_request.base.sha }}
-# then read steps.review.outputs.review-path and post inline comments (see the example)
-```
 
 ## Configuration
 
@@ -266,7 +271,6 @@ and [**help wanted**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/help%
 **🙋 We're actively looking for contributors on:**
 
 - [#3 — Build a real React + Vite frontend demo environment](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/3) for the Playwright examples
-- [#4 — Add a Simplified Chinese (zh-CN) README translation](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/4) — 欢迎中文开发者参与！
 
 See the [**v0.3 roadmap**](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/9) for the
 bigger picture. New to the project? Comment on an issue to claim it — we're happy to help.
