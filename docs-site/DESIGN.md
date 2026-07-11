@@ -19,7 +19,8 @@ undefined, ask in the issue; don't guess.
    variables in `src/css/custom.css` (`--eeh-*` and `--ifm-*`). Missing a token you
    need? Propose adding one in your PR — don't inline a hex/px.
 2. **Dark-mode-first.** Design and review against dark mode first. Light mode must stay
-   readable, but dark is the primary target.
+   readable, but dark is the primary target. This is locked in `docusaurus.config.ts`
+   (`colorMode: defaultMode 'dark', respectPrefersColorScheme false`) — don't change it.
 3. **Both themes must work.** Every component is checked in light **and** dark before
    merge. No component may look broken in either.
 4. **Responsive.** Mobile (~360px) to desktop. Multi-column layouts stack on mobile.
