@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+
 import pytest
 from typer.testing import CliRunner
 
-from app.cli import app
 import app.cli as cli_module
+from app.cli import app
 from app.sandbox import SandboxViolation
 
 

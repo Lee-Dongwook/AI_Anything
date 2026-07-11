@@ -1,5 +1,7 @@
 import subprocess
+
 import pytest
+
 from app.config import settings
 from app.runner import run_playwright
 from app.sandbox import SandboxViolation
