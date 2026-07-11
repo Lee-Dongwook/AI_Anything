@@ -1,8 +1,9 @@
 import time
 from pathlib import Path
+
+import app.preprocess.aria_snapshot as aria_snapshot_module
 from app.preprocess.aria_snapshot import extract_page_snapshot, read_failure_snapshot
 from app.sandbox import SandboxViolation
-import app.preprocess.aria_snapshot as aria_snapshot_module
 
 
 def test_extract_page_snapshot_valid():

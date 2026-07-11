@@ -1,5 +1,6 @@
 import json
 import subprocess
+
 from app.verify.selector_check import check_selectors
 
 
