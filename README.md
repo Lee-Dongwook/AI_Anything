@@ -220,6 +220,21 @@ make test       # pytest
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
+## Contributing
+
+Contributions of every size are welcome — bug reports, docs, tests, or code. Start with
+[`CONTRIBUTING.md`](CONTRIBUTING.md), then browse
+[**good first issues**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/good%20first%20issue)
+and [**help wanted**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/help%20wanted).
+
+**🙋 We're actively looking for contributors on:**
+
+- [#3 — Build a real React + Vite frontend demo environment](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/3) for the Playwright examples
+- [#4 — Add a Simplified Chinese (zh-CN) README translation](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/4) — 欢迎中文开发者参与！
+
+See the [**v0.3 roadmap**](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/9) for the
+bigger picture. New to the project? Comment on an issue to claim it — we're happy to help.
+
 ## Limitations
 
 - Fixes selectors and waits only — never assertions or control flow.

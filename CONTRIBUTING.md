@@ -107,6 +107,17 @@ Looking for a place to start?
   — scoped, beginner-friendly tasks.
 - 🙋 [**help wanted**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/help%20wanted)
   — things we'd love a hand with.
+- 🗺️ [**v0.3 roadmap**](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/9)
+  — the bigger picture and how the current work fits together.
+
+**🙋 We're actively recruiting contributors for these right now:**
+
+| Issue | What |
+| --- | --- |
+| [#3](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/3) | Build a real **React + Vite frontend demo** environment for the Playwright examples |
+| [#4](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/4) | Add a **Simplified Chinese (zh-CN)** README translation — 欢迎中文开发者参与！ |
+
+Interested? Comment on the issue to claim it — no prior experience with this codebase needed.
 
 Found one you like? **Comment on the issue to claim it** so we don't duplicate effort. If
 nobody responds within a few days, feel free to go ahead. For anything larger than a small
