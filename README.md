@@ -1,8 +1,8 @@
 # AI-Driven E2E Test Self-Healing Engine
 
-<!-- language: **English** · [한국어](README.ko.md) -->
+<!-- language: **English** · [한국어](README.ko.md) · [日本語](README.ja.md) -->
 
-**English** · [한국어](README.ko.md)
+**English** · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 [![CI](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml/badge.svg)](https://github.com/Lee-Dongwook/E2E-Self-Heal/actions/workflows/ci.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
