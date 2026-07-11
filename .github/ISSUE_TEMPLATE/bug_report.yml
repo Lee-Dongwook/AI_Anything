@@ -1,0 +1,91 @@
+name: "🐛 Bug report"
+description: Report a problem with the healer so we can fix it
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! 🙏
+        A clear report helps us fix it fast. Please fill out the sections below.
+
+        > ⚠️ **Security issue?** Do **not** file it here — follow [SECURITY.md](../blob/main/SECURITY.md) to report privately.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched [existing issues](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues) and this isn't a duplicate.
+          required: true
+        - label: This is not a security vulnerability (those go through SECURITY.md).
+          required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What went wrong?
+      description: A clear description of the bug.
+      placeholder: The healer reverted a valid selector and gave up after 3 loops…
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command / config you ran
+      description: The exact CLI command or CI configuration.
+      placeholder: e2e-healer tests/login.spec.ts --log playwright.log --json
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: RepairSummary / logs
+      description: Paste the `--json` summary and relevant console output. **Redact any secrets or tokens.**
+      render: shell
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: e2e-healer version
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.13.1"
+    validations:
+      required: true
+  - type: input
+    id: playwright
+    attributes:
+      label: Playwright version
+      placeholder: "1.48.0"
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other (note it in the description)
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, a minimal repro repo, or other context.
+    validations:
+      required: false

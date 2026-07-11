@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/Lee-Dongwook/E2E-Self-Heal#readme
+    about: Check the README and docs/ first — your answer may already be there.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/Lee-Dongwook/E2E-Self-Heal/blob/main/SECURITY.md
+    about: Please report vulnerabilities privately, not as a public issue.
+  - name: 🤝 Contributing guide
+    url: https://github.com/Lee-Dongwook/E2E-Self-Heal/blob/main/CONTRIBUTING.md
+    about: How to set up the project and open a pull request.

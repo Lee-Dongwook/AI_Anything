@@ -1,0 +1,32 @@
+name: "❓ Question / help"
+description: Ask how something works or get help with setup
+title: "[question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No question is too small. 🙂 Your question often reveals a docs gap we can fix.
+        한국어로 질문하셔도 괜찮습니다.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you ask
+      options:
+        - label: I skimmed the [README](https://github.com/Lee-Dongwook/E2E-Self-Heal/blob/main/README.md) and [docs](https://github.com/Lee-Dongwook/E2E-Self-Heal/tree/main/docs).
+          required: false
+        - label: I searched [existing issues](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues).
+          required: false
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to do? Include commands, config, or output if relevant (redact secrets).
+    validations:
+      required: false
