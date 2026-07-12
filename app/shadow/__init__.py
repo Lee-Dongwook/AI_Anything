@@ -4,8 +4,15 @@ Provides workspaces, snapshots, matching, and playwright mock injection.
 """
 
 from app.shadow.injector import MockInjector
-from app.shadow.interfaces import IMockInjector, IShadowWorkspace, ISnapshotStore, ITraceParser
+from app.shadow.interfaces import (
+    IMockInjector,
+    IShadowRuntime,
+    IShadowWorkspace,
+    ISnapshotStore,
+    ITraceParser,
+)
 from app.shadow.matcher import NoMatchError, SnapshotMatcher
+from app.shadow.runtime import ShadowRuntime
 from app.shadow.schemas import CapturedRequest, CapturedResponse, NetworkSnapshot, ShadowSnapshot
 from app.shadow.snapshot_store import (
     SnapshotCorruptionError,
@@ -17,10 +24,12 @@ from app.shadow.workspace import ShadowWorkspace
 
 __all__ = [
     "IMockInjector",
+    "IShadowRuntime",
     "IShadowWorkspace",
     "ISnapshotStore",
     "ITraceParser",
     "MockInjector",
+    "ShadowRuntime",
     "SnapshotMatcher",
     "NoMatchError",
     "CapturedRequest",

@@ -45,3 +45,24 @@ class IMockInjector(ABC):
     @abstractmethod
     def inject_mock(self, target: str, mock_data: Any) -> None:
         pass
+
+
+class IShadowRuntime(ABC):
+    """Blueprint for the Shadow Runtime orchestrator.
+
+    Ties together the workspace, snapshot store, matcher, and mock injector to
+    drive a shadow (replay) execution. Concrete behavior is intentionally left
+    unimplemented at the skeleton stage.
+    """
+
+    @abstractmethod
+    def setup(self) -> None:
+        pass
+
+    @abstractmethod
+    def replay(self, snapshot_id: str) -> Any:
+        pass
+
+    @abstractmethod
+    def teardown(self) -> None:
+        pass

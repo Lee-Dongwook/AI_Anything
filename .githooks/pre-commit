@@ -3,10 +3,13 @@
 # Enable once with: git config core.hooksPath .githooks
 set -e
 
-# Staged Python files (added/copied/modified), NUL-separated for safe paths.
-staged=$(git diff --cached --name-only --diff-filter=ACM -z -- '*.py')
-[ -z "$staged" ] && exit 0
+# Bail out early if no Python files are staged. This check uses a plain
+# (non-NUL) substitution only to test emptiness — command substitution strips
+# NUL bytes, so it must never be used to carry the -z file list.
+[ -z "$(git diff --cached --name-only --diff-filter=ACM -- '*.py')" ] && exit 0
 
-# Format only the staged files, then re-stage what ruff changed.
-printf '%s' "$staged" | xargs -0 uv run ruff format --
-printf '%s' "$staged" | xargs -0 git add --
+# Format only the staged files, then re-stage what ruff changed. Pipe the
+# NUL-separated list straight into xargs -0 (never through a shell variable) so
+# paths with spaces/newlines stay intact and separators are preserved.
+git diff --cached --name-only --diff-filter=ACM -z -- '*.py' | xargs -0 uv run ruff format --
+git diff --cached --name-only --diff-filter=ACM -z -- '*.py' | xargs -0 git add --
