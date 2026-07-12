@@ -1,56 +1,92 @@
-"""Shadow Runtime orchestrator (placeholder).
-This module is a skeleton placeholder: it defines the assembly point and the
-component wiring only. No runtime execution logic is implemented yet; the
-orchestration methods raise :class:`NotImplementedError` until a future issue
-fills them in.
+"""Shadow Runtime entry point.
+Instantiating the runtime has no side effects, and all collaborating components
+are optional so a minimal runtime can be created and driven without wiring any
+real components yet.
 """
 
-from typing import Any
+import structlog
 
-from app.shadow.interfaces import IMockInjector, IShadowRuntime, ISnapshotStore, IShadowWorkspace
+from app.shadow.context import ShadowContext
+from app.shadow.interfaces import IMockInjector, IShadowRuntime, IShadowWorkspace, ISnapshotStore
+
+logger = structlog.get_logger(__name__)
 
 SHADOW_PLACEHOLDER_MESSAGE = (
     "Shadow Testing runtime is under development — no shadow logic runs yet."
 )
 
 
-def run_shadow() -> str:
-    """Dedicated entry point for ``e2e-healer --shadow`` (placeholder).
-
-    The real Shadow Testing orchestration (mocking, trace parsing, DOM injection)
-    lands in a future issue. For now this only marks the routed execution path and
-    returns a human-readable status message for the CLI to surface.
-    """
-    return SHADOW_PLACEHOLDER_MESSAGE
-
-
 class ShadowRuntime(IShadowRuntime):
-    """Placeholder orchestrator for the Shadow Runtime.
+    """Minimal Shadow Runtime that manages a lifecycle and a :class:`ShadowContext`.
 
-    Receives the collaborating components via dependency injection and exposes
-    the orchestration surface (:meth:`setup`, :meth:`replay`, :meth:`teardown`)
-    that future implementations will flesh out. Instantiating this class has no
-    side effects; the methods are intentionally not yet implemented.
+    Collaborators are injected optionally so the runtime can be instantiated on
+    its own. :meth:`initialize` creates and activates a context; :meth:`shutdown`
+    deactivates and releases it. Both methods are idempotent.
     """
 
     def __init__(
         self,
-        workspace: IShadowWorkspace,
-        snapshot_store: ISnapshotStore,
-        injector: IMockInjector,
+        workspace: IShadowWorkspace | None = None,
+        snapshot_store: ISnapshotStore | None = None,
+        injector: IMockInjector | None = None,
     ) -> None:
         self.workspace = workspace
         self.snapshot_store = snapshot_store
         self.injector = injector
+        self._context: ShadowContext | None = None
 
-    def setup(self) -> None:
-        """Prepare the runtime for a replay. Not implemented yet."""
-        raise NotImplementedError("ShadowRuntime.setup is not implemented yet")
+    @property
+    def context(self) -> ShadowContext | None:
+        """The active :class:`ShadowContext`, or ``None`` before initialization."""
+        return self._context
 
-    def replay(self, snapshot_id: str) -> Any:
-        """Replay the given snapshot through the shadow flow. Not implemented yet."""
-        raise NotImplementedError("ShadowRuntime.replay is not implemented yet")
+    @property
+    def is_active(self) -> bool:
+        """Whether the runtime currently holds an active context."""
+        return self._context is not None and self._context.is_active
 
-    def teardown(self) -> None:
-        """Release runtime resources after a replay. Not implemented yet."""
-        raise NotImplementedError("ShadowRuntime.teardown is not implemented yet")
+    def initialize(self) -> None:
+        """Create and activate the shadow context.
+
+        Idempotent: calling it again while already active leaves the existing
+        context in place. Access the context via :attr:`context`.
+        """
+        if self.is_active:
+            logger.info("shadow_runtime_already_initialized")
+            return
+
+        self._context = ShadowContext(
+            workspace=self.workspace,
+            snapshot_store=self.snapshot_store,
+            injector=self.injector,
+        )
+        self._context.activate()
+        logger.info("shadow_runtime_initialized")
+
+    def shutdown(self) -> None:
+        """Deactivate and release the shadow context.
+
+        Idempotent: a no-op if the runtime was never initialized or is already
+        shut down.
+        """
+        if self._context is None:
+            logger.info("shadow_runtime_already_shutdown")
+            return
+
+        self._context.deactivate()
+        self._context = None
+        logger.info("shadow_runtime_shutdown")
+
+
+def run_shadow() -> str:
+    """Dedicated entry point for ``e2e-healer --shadow``.
+
+    Exercises the minimal runtime lifecycle (initialize → shutdown) to prove the
+    foundation is wired, then returns a human-readable status message for the CLI
+    to surface. The real Shadow Testing orchestration (mocking, trace parsing,
+    DOM injection) lands in a future issue.
+    """
+    runtime = ShadowRuntime()
+    runtime.initialize()
+    runtime.shutdown()
+    return SHADOW_PLACEHOLDER_MESSAGE
