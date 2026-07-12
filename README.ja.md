@@ -6,7 +6,8 @@
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-壊れた Playwright E2E テストを自動修復します。UI 変更で要素の名前や構造が変わり、
+**LangGraph** ベースの **AI エージェント** で壊れた **Playwright** E2E テストを自動修復する
+**自己修復（self-healing）** エンジンです。UI 変更で要素の名前や構造が変わり、
 テストのセレクタが壊れた場合、エンジンが失敗原因を診断し、壊れたセレクタ／待機条件を
 パッチし、**実際の DOM で新しいセレクタを検証したうえで**、テストが通るかリトライ上限に
 達するまで再実行し、修正を書き戻します。ローカル **CLI** としても、パッチ PR を開く
