@@ -1,5 +1,7 @@
 """Pydantic schemas for the Shadow Runtime network mock capturing and replay."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -26,3 +28,11 @@ class NetworkSnapshot(BaseModel):
 
     request: CapturedRequest
     response: CapturedResponse
+
+
+class ShadowSnapshot(BaseModel):
+    """Container representing a fully serialized/persisted application state for replay."""
+
+    snapshot_id: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    network_snapshots: list[NetworkSnapshot] = Field(default_factory=list)
