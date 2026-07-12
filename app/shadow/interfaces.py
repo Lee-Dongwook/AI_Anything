@@ -50,19 +50,16 @@ class IMockInjector(ABC):
 class IShadowRuntime(ABC):
     """Blueprint for the Shadow Runtime orchestrator.
 
-    Ties together the workspace, snapshot store, matcher, and mock injector to
-    drive a shadow (replay) execution. Concrete behavior is intentionally left
-    unimplemented at the skeleton stage.
+    Owns the basic runtime lifecycle and the shared execution context that future
+    Shadow Testing features (trace parsing, snapshot loading, network
+    interception, DOM injection) will build upon. Only the lifecycle surface is
+    defined at this foundational stage.
     """
 
     @abstractmethod
-    def setup(self) -> None:
+    def initialize(self) -> None:
         pass
 
     @abstractmethod
-    def replay(self, snapshot_id: str) -> Any:
-        pass
-
-    @abstractmethod
-    def teardown(self) -> None:
+    def shutdown(self) -> None:
         pass
