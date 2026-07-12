@@ -3,6 +3,7 @@
 Provides workspaces, snapshots, matching, and playwright mock injection.
 """
 
+from app.shadow.config import CleanupPolicy, ShadowConfig
 from app.shadow.injector import MockInjector
 from app.shadow.interfaces import (
     IMockInjector,
@@ -29,7 +30,9 @@ __all__ = [
     "IShadowWorkspace",
     "ISnapshotStore",
     "ITraceParser",
+    "CleanupPolicy",
     "MockInjector",
+    "ShadowConfig",
     "ShadowRuntime",
     "SnapshotMatcher",
     "NoMatchError",
