@@ -8,7 +8,7 @@ from app.shadow.interfaces import IMockInjector, IShadowWorkspace, ISnapshotStor
 from app.shadow.matcher import NoMatchError, SnapshotMatcher
 from app.shadow.normalizer import RequestNormalizer
 from app.shadow.schemas import CapturedRequest, CapturedResponse, NetworkSnapshot, ShadowSnapshot
-from app.shadow.scoring import MatchScorer
+from app.shadow.scoring import MatchScorer, ScoringWeights
 from app.shadow.snapshot_store import (
     SnapshotCorruptionError,
     SnapshotNotFoundError,
@@ -27,6 +27,7 @@ __all__ = [
     "NoMatchError",
     "RequestNormalizer",
     "MatchScorer",
+    "ScoringWeights",
     "CapturedRequest",
     "CapturedResponse",
     "NetworkSnapshot",

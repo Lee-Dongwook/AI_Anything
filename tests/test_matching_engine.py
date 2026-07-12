@@ -1,7 +1,7 @@
 import pytest
 
 from app.shadow.normalizer import RequestNormalizer
-from app.shadow.scoring import MatchScorer
+from app.shadow.scoring import MatchScorer, ScoringWeights
 from app.shadow.matcher import SnapshotMatcher, NoMatchError
 from app.shadow.schemas import CapturedRequest, CapturedResponse, NetworkSnapshot
 
@@ -194,3 +194,27 @@ def test_matching_engine_url_vs_path_tie_breaker():
     incoming = CapturedRequest(method="GET", url="http://test.com/users?tab=all")
     resp = matcher.match(incoming)
     assert resp.body == "all-users"
+
+
+def test_custom_scoring_weights():
+    # 1. Default weights score
+    req1 = CapturedRequest(method="GET", url="http://test.com/users")
+    req2 = CapturedRequest(method="GET", url="http://test.com/users")
+
+    scorer_default = MatchScorer()
+    default_score = scorer_default.calculate_score(req1, req2)
+    # Default exact_url_bonus (150) + query_max (30) + headers_max (20) + body_max (50) = 250
+    assert default_score == 250.0
+
+    # 2. Custom weights score
+    custom_weights = ScoringWeights(
+        exact_url_bonus=10.0,
+        base_url_match=5.0,
+        query_max=1.0,
+        headers_max=1.0,
+        body_max=1.0,
+    )
+    scorer_custom = MatchScorer(weights=custom_weights)
+    custom_score = scorer_custom.calculate_score(req1, req2)
+    # 10 + 1 + 1 + 1 = 13
+    assert custom_score == 13.0
