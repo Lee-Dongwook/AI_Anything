@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
-# Format staged Python files with ruff before committing.
+# Lint and format staged Python files with ruff before committing, mirroring the
+# `ruff check` + `ruff format --check` gate in CI (.github/workflows/ci.yml) so
+# failures surface locally instead of breaking CI.
 # Enable once with: git config core.hooksPath .githooks
 set -e
 
@@ -8,8 +10,11 @@ set -e
 # NUL bytes, so it must never be used to carry the -z file list.
 [ -z "$(git diff --cached --name-only --diff-filter=ACM -- '*.py')" ] && exit 0
 
-# Format only the staged files, then re-stage what ruff changed. Pipe the
-# NUL-separated list straight into xargs -0 (never through a shell variable) so
-# paths with spaces/newlines stay intact and separators are preserved.
+# Lint first, auto-fixing what ruff can. Any remaining (unfixable) violation
+# makes ruff exit non-zero, and `set -e` aborts the commit so it never reaches
+# CI. Then format. Both pipe the NUL-separated staged list straight into
+# xargs -0 (never through a shell variable) so paths with spaces/newlines stay
+# intact and separators are preserved. Re-stage what ruff rewrote at the end.
+git diff --cached --name-only --diff-filter=ACM -z -- '*.py' | xargs -0 uv run ruff check --fix --
 git diff --cached --name-only --diff-filter=ACM -z -- '*.py' | xargs -0 uv run ruff format --
 git diff --cached --name-only --diff-filter=ACM -z -- '*.py' | xargs -0 git add --

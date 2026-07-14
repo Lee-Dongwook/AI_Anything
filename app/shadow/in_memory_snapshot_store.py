@@ -23,20 +23,14 @@ class InMemorySnapshotStore(ISnapshotStore):
             try:
                 snapshot = ShadowSnapshot(**data)
             except Exception as e:
-                raise SnapshotStoreError(
-                    f"Invalid snapshot dict structure: {e}"
-                )
+                raise SnapshotStoreError(f"Invalid snapshot dict structure: {e}")
         else:
-            raise SnapshotStoreError(
-                "Unsupported data type; expected ShadowSnapshot or dict"
-            )
+            raise SnapshotStoreError("Unsupported data type; expected ShadowSnapshot or dict")
 
         self._snapshots[snapshot_id] = snapshot
 
     def get_snapshot(self, snapshot_id: str) -> ShadowSnapshot:
         if snapshot_id not in self._snapshots:
-            raise SnapshotNotFoundError(
-                f"Snapshot '{snapshot_id}' does not exist."
-            )
+            raise SnapshotNotFoundError(f"Snapshot '{snapshot_id}' does not exist.")
 
         return self._snapshots[snapshot_id]
