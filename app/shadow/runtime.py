@@ -150,6 +150,8 @@ def run_shadow(
     snapshot = store.get_snapshot(snapshot_id)
 
     debug_port = _get_free_port()
+    is_success = False
+    config_path: Path | None = None
 
     with sync_playwright() as p:
         # Launch headless Chromium with a remote-debugging port so the
@@ -158,21 +160,22 @@ def run_shadow(
             headless=True,
             args=[f"--remote-debugging-port={debug_port}"],
         )
+        try:
+            # Obtain the WebSocket debugger URL from the CDP /json/version endpoint.
+            ws_endpoint = _fetch_ws_endpoint(debug_port)
 
-        # Obtain the WebSocket debugger URL from the CDP /json/version endpoint.
-        ws_endpoint = _fetch_ws_endpoint(debug_port)
+            # Attach a MockInjector to a fresh browser context so that every
+            # network request made by the test is intercepted and fulfilled from
+            # the snapshot data.
+            injector = MockInjector()
+            context = browser.new_context()
+            try:
+                injector.inject_mock(context, snapshot.network_snapshots)
 
-        # Attach a MockInjector to a fresh browser context so that every
-        # network request made by the test is intercepted and fulfilled from
-        # the snapshot data.
-        injector = MockInjector()
-        context = browser.new_context()
-        injector.inject_mock(context, snapshot.network_snapshots)
-
-        # Write a temporary Playwright config that redirects Node.js to the
-        # Python-controlled browser via connectOptions.
-        config_file_name = "shadow_playwright.config.js"
-        config_content = f"""module.exports = {{
+                # Write a temporary Playwright config that redirects Node.js to the
+                # Python-controlled browser via connectOptions.
+                config_file_name = "shadow_playwright.config.js"
+                config_content = f"""module.exports = {{
   use: {{
     connectOptions: {{
       wsEndpoint: "{ws_endpoint}",
@@ -181,35 +184,36 @@ def run_shadow(
 }};
 """
 
-        config_path = workspace.tmp_path(config_file_name)
-        assert_write_allowed(config_path, reason="shadow_playwright_config")
-        config_path.write_text(config_content, encoding="utf-8")
+                config_path = workspace.tmp_path(config_file_name)
+                assert_write_allowed(config_path, reason="shadow_playwright_config")
+                config_path.write_text(config_content, encoding="utf-8")
 
-        # Build the subprocess command.
-        cmd_parts = shlex.split(settings.playwright_cmd)
-        cmd = [*cmd_parts, str(test_path), "--config", str(config_path)]
-        # On Windows, `npx` is a .cmd wrapper that must be invoked explicitly.
-        if os.name == "nt" and cmd and cmd[0] == "npx":
-            cmd[0] = "npx.cmd"
-        assert_command_allowed(cmd, reason="shadow_playwright_test")
+                # Build the subprocess command.
+                cmd_parts = shlex.split(settings.playwright_cmd)
+                cmd = [*cmd_parts, str(test_path), "--config", str(config_path)]
+                # On Windows, `npx` is a .cmd wrapper that must be invoked explicitly.
+                if os.name == "nt" and cmd and cmd[0] == "npx":
+                    cmd[0] = "npx.cmd"
+                assert_command_allowed(cmd, reason="shadow_playwright_test")
 
-        env = os.environ.copy()
-        env["PLAYWRIGHT_WS_ENDPOINT"] = ws_endpoint
+                env = os.environ.copy()
+                env["PLAYWRIGHT_WS_ENDPOINT"] = ws_endpoint
 
-        logger.info("shadow_playwright_run_started", cmd=cmd)
-        proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
-        is_success = proc.returncode == 0
-        logger.info(
-            "shadow_playwright_run_finished",
-            passed=is_success,
-            returncode=proc.returncode,
-        )
-
-        # Tear down browser resources and temporary files.
-        context.close()
-        browser.close()
-        config_path.unlink(missing_ok=True)
-        workspace.cleanup(is_success=is_success)
+                logger.info("shadow_playwright_run_started", cmd=cmd)
+                proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+                is_success = proc.returncode == 0
+                logger.info(
+                    "shadow_playwright_run_finished",
+                    passed=is_success,
+                    returncode=proc.returncode,
+                )
+            finally:
+                context.close()
+        finally:
+            browser.close()
+            if config_path is not None:
+                config_path.unlink(missing_ok=True)
+            workspace.cleanup(is_success=is_success)
 
     # Compute replay result summary.
     matched_count = len(injector.matched_requests)
@@ -217,7 +221,7 @@ def run_shadow(
     missed_count = len(missed_requests)
     total_requests = matched_count + missed_count
     avg_score = 0.0
-    if matched_count > 0:
+    if total_requests > 0:
         avg_score = sum(s for _, s in injector.matched_requests) / total_requests
 
     return ShadowRunResult(
