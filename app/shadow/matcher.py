@@ -65,3 +65,30 @@ class SnapshotMatcher:
         best_candidate = candidates[0]
 
         return best_candidate[2].response
+
+    def match_with_score(self, request: CapturedRequest) -> tuple[CapturedResponse, float]:
+        """Resolves the given captured request and returns the response plus its similarity score."""
+        candidates = []
+
+        for idx, snapshot in enumerate(self.snapshots):
+            score = self.scorer.calculate_score(request, snapshot.request)
+            if score >= 0:
+                candidates.append((score, idx, snapshot))
+
+        if not candidates:
+            raise NoMatchError(request)
+
+        def sort_key(item):
+            score, idx, snapshot = item
+            exact_url = request.url == snapshot.request.url
+
+            p1 = urllib.parse.urlparse(request.url).path
+            p2 = urllib.parse.urlparse(snapshot.request.url).path
+            exact_path = p1 == p2
+
+            return (-score, -int(exact_url), -int(exact_path), idx)
+
+        candidates.sort(key=sort_key)
+        best_candidate = candidates[0]
+
+        return best_candidate[2].response, best_candidate[0]

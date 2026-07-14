@@ -23,6 +23,7 @@ class MockInjector(IMockInjector):
     def __init__(self, page_or_context: Any = None):
         self.page_or_context = page_or_context
         self.unmatched_requests: list[CapturedRequest] = []
+        self.matched_requests: list[tuple[CapturedRequest, float]] = []
         self.matcher: SnapshotMatcher | None = None
 
     def inject_mock(self, target: Any, mock_data: Any) -> None:
@@ -70,7 +71,8 @@ class MockInjector(IMockInjector):
             )
             try:
                 assert self.matcher is not None
-                response = self.matcher.match(captured_req)
+                response, score = self.matcher.match_with_score(captured_req)
+                self.matched_requests.append((captured_req, score))
                 body = response.body
                 if response.is_base64 and body:
                     body_bytes = base64.b64decode(body)
@@ -96,7 +98,8 @@ class MockInjector(IMockInjector):
             )
             try:
                 assert self.matcher is not None
-                response = self.matcher.match(captured_req)
+                response, score = self.matcher.match_with_score(captured_req)
+                self.matched_requests.append((captured_req, score))
                 body = response.body
                 if response.is_base64 and body:
                     body_bytes = base64.b64decode(body)

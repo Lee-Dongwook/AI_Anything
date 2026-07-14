@@ -50,3 +50,13 @@ class ShadowSnapshot(BaseModel):
     snapshot_id: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     network_snapshots: list[NetworkSnapshot] = Field(default_factory=list)
+
+
+class ShadowRunResult(BaseModel):
+    """Result of a Shadow Replay execution run."""
+
+    is_success: bool
+    matched_count: int = 0
+    missed_count: int = 0
+    missed_requests: list[CapturedRequest] = Field(default_factory=list)
+    score: float = 0.0

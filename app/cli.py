@@ -80,7 +80,18 @@ def main(
         return
     configure_logging(settings.log_level)
     logger.info("shadow_mode_invoked")
-    console.print(Panel(run_shadow(), title="Shadow Testing", border_style="yellow"))
+    from app.shadow.schemas import ShadowRunResult
+
+    result = run_shadow()
+    if isinstance(result, ShadowRunResult):
+        status = "passed" if result.is_success else "failed"
+        renderable = (
+            f"[bold]{status}[/bold] | matched={result.matched_count} "
+            f"missed={result.missed_count} score={result.score:.2f}"
+        )
+    else:
+        renderable = result
+    console.print(Panel(renderable, title="Shadow Testing", border_style="yellow"))
     raise typer.Exit(code=0)
 
 
