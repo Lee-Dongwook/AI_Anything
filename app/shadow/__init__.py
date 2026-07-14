@@ -5,6 +5,7 @@ Provides workspaces, snapshots, matching, and playwright mock injection.
 
 from app.shadow.config import CleanupPolicy, ShadowConfig
 from app.shadow.injector import MockInjector
+from app.shadow.in_memory_snapshot_store import InMemorySnapshotStore
 from app.shadow.interfaces import (
     IMockInjector,
     IShadowRuntime,
@@ -57,4 +58,5 @@ __all__ = [
     "TraceParseError",
     "InvalidTraceArchiveError",
     "ShadowWorkspace",
+    "InMemorySnapshotStore",
 ]
