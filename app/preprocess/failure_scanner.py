@@ -17,7 +17,9 @@ import structlog
 logger = structlog.get_logger(__name__)
 
 # A numbered failure entry; capture the first test-file path on the line.
-_FAILURE_RE = re.compile(r"^\s*\d+\)\s+.*?((?:[a-zA-Z]:)?[\w./\\-]+\.(?:spec|test)\.[jt]sx?):\d+", re.MULTILINE)
+_FAILURE_RE = re.compile(
+    r"^\s*\d+\)\s+.*?((?:[a-zA-Z]:)?[\w./\\-]+\.(?:spec|test)\.[jt]sx?):\d+", re.MULTILINE
+)
 
 
 def scan_failing_tests(raw_log: str) -> list[str]:
