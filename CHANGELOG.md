@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-17
+
+### Added
+- Multi-provider LLM support: **OpenAI**, **Anthropic (Claude)**, and **Ollama** (local,
+  offline) alongside the existing NVIDIA NIM, selected via `E2E_HEALER_LLM_PROVIDER`.
+  Configuration is provider-neutral (`E2E_HEALER_LLM_*`); the standard `OPENAI_API_KEY` /
+  `ANTHROPIC_API_KEY` are used as fallbacks, and Ollama needs no key. Anthropic and Ollama
+  are optional extras — `ai-driven-e2e[anthropic]` / `ai-driven-e2e[ollama]` — so users who
+  don't need them don't pull in the dependency.
+
+### Changed
+- LLM client rebuilt on a provider-agnostic abstraction over LangChain chat models: one
+  interface for free-text and structured completion plus a factory keyed on
+  `llm_provider`. Node call sites are unchanged. Structured outputs are enforced per
+  provider (OpenAI/NVIDIA strict `json_schema`, Anthropic tool-use, Ollama native
+  JSON-schema `format`), with the tenacity retry and Patch Generator feedback loop
+  preserved so a flaky JSON response never crashes the run.
+- Documentation: README gains a provider matrix and per-provider setup blocks;
+  `.env.example` shows every provider.
+
 ## [0.3.0] - 2026-07-11
 
 ### Changed
@@ -59,7 +79,8 @@ All notable changes to this project are documented here. The format is based on
 - LLM provider migrated from OpenAI to NVIDIA NIM (`openai/gpt-oss-120b`) via the
   OpenAI-compatible endpoint; Structured Outputs guardrail retained.
 
-[Unreleased]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.2.0...v0.2.2
 [0.2.0]: https://github.com/Lee-Dongwook/E2E-Self-Heal/compare/v0.1.0...v0.2.0
