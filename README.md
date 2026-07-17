@@ -236,6 +236,20 @@ configure it via the generic `LLM_*` vars. The legacy `NVIDIA_*` vars still work
 the provider is `nvidia` they are folded into the generic ones, so existing setups need no
 changes.
 
+### Provider matrix
+
+| Provider    | Install                        | Required env                                              | Structured outputs            | Notes                                                                 |
+| ----------- | ------------------------------ | -------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `nvidia`    | built-in (default)             | `E2E_HEALER_LLM_API_KEY` (or legacy `NVIDIA_API_KEY`)    | strict `json_schema`          | OpenAI-compatible NIM endpoint; default `openai/gpt-oss-120b`.        |
+| `openai`    | built-in                       | `E2E_HEALER_LLM_API_KEY` **or** `OPENAI_API_KEY`         | strict `json_schema` (native) | Set `LLM_BASE_URL` for Azure / OpenAI-compatible endpoints.           |
+| `anthropic` | `ai-driven-e2e[anthropic]`     | `E2E_HEALER_LLM_API_KEY` **or** `ANTHROPIC_API_KEY`      | tool-use                      | No OpenAI `response_format`; schema enforced via Claude tool-use.     |
+| `ollama`    | `ai-driven-e2e[ollama]`        | none (local)                                             | native JSON-schema `format`   | Fully offline; smaller models are less reliable at strict JSON.       |
+
+All providers read the generic `E2E_HEALER_LLM_MODEL` / `E2E_HEALER_LLM_MAX_TOKENS` /
+`E2E_HEALER_LLM_BASE_URL`. On a structured-output parse failure the engine retries
+(tenacity) and then falls back to the Patch Generator feedback loop, so a flaky JSON
+response never crashes the run.
+
 ### Using OpenAI
 
 Set the provider to `openai` and supply a key — either the generic `E2E_HEALER_LLM_API_KEY`

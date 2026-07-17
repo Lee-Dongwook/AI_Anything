@@ -212,3 +212,114 @@ def test_complete_raises_on_empty_content():
     client = llm.LangChainClient(_FakeModel())  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="llm_returned_empty_completion"):
         client.complete("sys", "usr")
+
+
+# --- Adapter happy paths with mocked chat models (no live API calls) ------------------
+
+
+def test_complete_returns_text_and_sends_system_then_user():
+    captured: dict[str, object] = {}
+
+    class _FakeMessage:
+        content = "diagnosis text"
+
+    class _FakeModel:
+        def invoke(self, messages):
+            captured["messages"] = messages
+            return _FakeMessage()
+
+    client = llm.LangChainClient(_FakeModel())  # type: ignore[arg-type]
+    result = client.complete("SYS", "USR")
+
+    assert result == "diagnosis text"
+    assert captured["messages"] == [("system", "SYS"), ("human", "USR")]
+
+
+def test_structured_returns_validated_model_and_sends_messages():
+    captured: dict[str, object] = {}
+
+    class _FakeStructured:
+        def invoke(self, messages):
+            captured["messages"] = messages
+            return llm.PatchOutput(instructions=[])
+
+    class _FakeModel:
+        def with_structured_output(self, _schema, **_kwargs):
+            return _FakeStructured()
+
+    client = llm.LangChainClient(_FakeModel())  # type: ignore[arg-type]
+    result = client.structured("SYS", "USR", llm.PatchOutput)
+
+    assert isinstance(result, llm.PatchOutput)
+    assert captured["messages"] == [("system", "SYS"), ("human", "USR")]
+
+
+def test_extract_text_flattens_content_blocks():
+    # Providers like Anthropic can return content as a list of blocks, not a plain string.
+    class _FakeMessage:
+        content = [{"type": "text", "text": "a"}, {"type": "text", "text": "b"}, "c"]
+
+    assert llm._extract_text(_FakeMessage()) == "abc"  # type: ignore[arg-type]
+
+
+# --- Public functions delegate to the client (the surface the nodes import) -----------
+
+
+class _RecordingClient:
+    """A stand-in LLMClient that records calls and returns canned, schema-valid results."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple] = []
+
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        self.calls.append(("complete", system_prompt, user_prompt))
+        return "diagnosis"
+
+    def structured(self, system_prompt, user_prompt, schema):
+        self.calls.append(("structured", system_prompt, user_prompt, schema))
+        if schema is llm.ReviewOutput:
+            return llm.ReviewOutput(findings=[])
+        return llm.PatchOutput(instructions=[])
+
+
+def test_generate_diagnosis_delegates_to_complete(monkeypatch):
+    fake = _RecordingClient()
+    monkeypatch.setattr(llm, "_get_client", lambda: fake)
+
+    assert llm.generate_diagnosis("sys", "usr") == "diagnosis"
+    assert fake.calls == [("complete", "sys", "usr")]
+
+
+def test_generate_patch_delegates_to_structured(monkeypatch):
+    fake = _RecordingClient()
+    monkeypatch.setattr(llm, "_get_client", lambda: fake)
+
+    out = llm.generate_patch("sys", "usr")
+
+    assert isinstance(out, llm.PatchOutput)
+    assert fake.calls[0][:3] == ("structured", "sys", "usr")
+    assert fake.calls[0][3] is llm.PatchOutput
+
+
+def test_generate_review_delegates_to_structured(monkeypatch):
+    fake = _RecordingClient()
+    monkeypatch.setattr(llm, "_get_client", lambda: fake)
+
+    out = llm.generate_review("sys", "usr")
+
+    assert isinstance(out, llm.ReviewOutput)
+    assert fake.calls[0][3] is llm.ReviewOutput
+
+
+def test_generate_patch_surfaces_client_error_for_retry_and_feedback(monkeypatch):
+    # A structured parse failure must propagate out of the (undecorated) call so the tenacity
+    # wrapper retries and, on exhaustion, the Patch Generator feedback loop engages.
+    class _FailingClient:
+        def structured(self, *_args, **_kwargs):
+            raise ValueError("llm_returned_no_parsed_output")
+
+    monkeypatch.setattr(llm, "_get_client", lambda: _FailingClient())
+
+    undecorated = getattr(llm.generate_patch, "__wrapped__")  # bypass tenacity's backoff waits
+    with pytest.raises(ValueError, match="llm_returned_no_parsed_output"):
+        undecorated("sys", "usr")
