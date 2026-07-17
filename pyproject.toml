@@ -73,3 +73,8 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
