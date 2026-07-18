@@ -376,6 +376,38 @@ def review(
         console.print(f"[red]sandbox denied:[/red] {exc}")
         raise typer.Exit(code=2) from exc
 
+@app.command()
+def init(
+    force: bool = typer.Option(
+        False, 
+        "--force", 
+        "-f", 
+        help="Overwrite existing workflow configuration if it exists."
+    )
+) -> None:
+    """Initialize a starter GitHub Actions workflow configuration for E2E self-healing."""
+    target_path = Path(".github/workflows/e2e-healer.yml")
 
+    if target_path.exists() and not force:
+        console.print(f"[yellow]Workflow file already exists at {target_path}. Use --force to overwrite.[/yellow]")
+        raise typer.Exit(code=1)
+
+    # Create directories if they don't exist
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+
+    yaml_template = """name: E2E Self-Healing CI
+on:
+  push:
+    branches: [ main ]
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # add steps to invoke e2e-healer
+"""
+
+    target_path.write_text(yaml_template)
+    console.print(f"[green]Successfully scaffolded starter workflow at {target_path}![/green]")
 if __name__ == "__main__":
     app()
