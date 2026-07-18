@@ -40,18 +40,35 @@ function ValueProps() {
   return (
     <section className={styles.features}>
       <div className={styles.featuresGrid}>
-        {/* Placeholder text as requested: "maintainer will provide final copy" */}
         <div className={styles.featureCard}>
-          <Heading as="h3" className={styles.featureTitle}>Value Prop 1</Heading>
-          <p className={styles.featureText}>Maintainer will provide final copy here.</p>
+          <Heading as="h3" className={styles.featureTitle}>Diagnose from the diff</Heading>
+          <p className={styles.featureText}>
+            Maps the failing selector to the actual DOM change in your{' '}
+            <code>git diff</code> — pinpointing the root cause instead of
+            guessing at raw logs.
+          </p>
         </div>
         <div className={styles.featureCard}>
-          <Heading as="h3" className={styles.featureTitle}>Value Prop 2</Heading>
-          <p className={styles.featureText}>Maintainer will provide final copy here.</p>
+          <Heading as="h3" className={styles.featureTitle}>Guardrailed patches</Heading>
+          <p className={styles.featureText}>
+            Only failing locators and wait conditions get rewritten. Assertions
+            and test logic are off-limits — enforced at both the prompt and JSON
+            schema level.
+          </p>
         </div>
         <div className={styles.featureCard}>
-          <Heading as="h3" className={styles.featureTitle}>Value Prop 3</Heading>
-          <p className={styles.featureText}>Maintainer will provide final copy here.</p>
+          <Heading as="h3" className={styles.featureTitle}>Verify, then loop</Heading>
+          <p className={styles.featureText}>
+            Every patch is re-run with <code>npx playwright test</code> and
+            loops until the test is green — capped at 3 tries, no runaway fixes.
+          </p>
+        </div>
+        <div className={styles.featureCard}>
+          <Heading as="h3" className={styles.featureTitle}>Local CLI = CI action</Heading>
+          <p className={styles.featureText}>
+            The same command you run locally powers the GitHub Action. Outcome is
+            signaled via exit codes, so CI can open a patch PR automatically.
+          </p>
         </div>
       </div>
     </section>
