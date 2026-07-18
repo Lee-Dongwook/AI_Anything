@@ -34,7 +34,9 @@ def patch_generator(state: AgentState) -> dict:
     try:
         assert_patch_boundary_allowed(Path(state["test_script_path"]))
     except SandboxViolation as exc:
-        logger.warning("boundary_violation", test_script_path=state["test_script_path"], error=str(exc))
+        logger.warning(
+            "boundary_violation", test_script_path=state["test_script_path"], error=str(exc)
+        )
         return {
             "current_code": state["current_code"],
             "patch_instructions": {},
@@ -54,4 +56,8 @@ def patch_generator(state: AgentState) -> dict:
 
     patched = _apply(state["current_code"], output.instructions)
     logger.info("patch_generator_finished", instruction_count=len(output.instructions))
-    return {"current_code": patched, "patch_instructions": output.model_dump(), "boundary_report": {"ok": True}}
+    return {
+        "current_code": patched,
+        "patch_instructions": output.model_dump(),
+        "boundary_report": {"ok": True},
+    }

@@ -63,7 +63,8 @@ def build_graph():
     graph.add_edge(START, "diagnoser")
     graph.add_edge("diagnoser", "patch_generator")
     graph.add_conditional_edges(
-        "patch_generator", route_after_patch,
+        "patch_generator",
+        route_after_patch,
         {"shadow_verifier": "shadow_verifier", "patch_generator": "patch_generator", END: END},
     )
     graph.add_conditional_edges(

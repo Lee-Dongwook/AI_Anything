@@ -68,6 +68,7 @@ def assert_patch_boundary_allowed(path: Path) -> None:
     if not _matches_any(value, _patterns(settings.architecture_allow_globs)):
         raise SandboxViolation(f"patch not allowed by architecture boundary: {path}")
 
+
 def assert_command_allowed(argv: list[str], reason: str = "subprocess") -> None:
     """Reject command arguments that look like shell control syntax."""
     if sandbox_mode() == "off":
