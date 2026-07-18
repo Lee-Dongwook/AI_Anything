@@ -37,7 +37,8 @@ from app.schemas import (
 from app.shadow.runtime import run_shadow
 from app.state import AgentState
 from app.utils.files import atomic_write
-
+# Place this around line 40, before any command functions start
+WORKFLOW_TARGET_PATH = Path(".github/workflows/e2e-healer.yml")
 
 class _DefaultCommandGroup(TyperGroup):
     """Route a bare invocation to ``heal`` so ``e2e-healer <path>`` keeps working.
@@ -376,6 +377,8 @@ def review(
         console.print(f"[red]sandbox denied:[/red] {exc}")
         raise typer.Exit(code=2) from exc
 
+# Place this at the bottom of app/cli.py, right before: if __name__ == "__main__":
+
 @app.command()
 def init(
     force: bool = typer.Option(
@@ -386,14 +389,18 @@ def init(
     )
 ) -> None:
     """Initialize a starter GitHub Actions workflow configuration for E2E self-healing."""
-    target_path = Path(".github/workflows/e2e-healer.yml")
-
-    if target_path.exists() and not force:
-        console.print(f"[yellow]Workflow file already exists at {target_path}. Use --force to overwrite.[/yellow]")
+    
+    # 1. Using the global variable instead of a local target_path
+    if WORKFLOW_TARGET_PATH.exists() and not force:
+        console.print(f"[yellow]Workflow file already exists at {WORKFLOW_TARGET_PATH}. Use --force to overwrite.[/yellow]")
         raise typer.Exit(code=1)
 
-    # Create directories if they don't exist
-    target_path.parent.mkdir(parents=True, exist_ok=True)
+    # 2. Wrapped folder creation in a try-except block
+    try:
+        WORKFLOW_TARGET_PATH.parent.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        console.print(f"[red]Failed to create directory {WORKFLOW_TARGET_PATH.parent}: {e}[/red]")
+        raise typer.Exit(code=1)
 
     yaml_template = """name: E2E Self-Healing CI
 on:
@@ -407,7 +414,12 @@ jobs:
       # add steps to invoke e2e-healer
 """
 
-    target_path.write_text(yaml_template)
-    console.print(f"[green]Successfully scaffolded starter workflow at {target_path}![/green]")
+    # 3. Wrapped file writing in a try-except block too
+    try:
+        WORKFLOW_TARGET_PATH.write_text(yaml_template)
+        console.print(f"[green]Successfully scaffolded starter workflow at {WORKFLOW_TARGET_PATH}![/green]")
+    except Exception as e:
+        console.print(f"[red]Failed to write workflow file: {e}[/red]")
+        raise typer.Exit(code=1)
 if __name__ == "__main__":
     app()
