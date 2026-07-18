@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Runnable React + Vite demo app and Playwright scenarios for the E2E self-healing engine",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
