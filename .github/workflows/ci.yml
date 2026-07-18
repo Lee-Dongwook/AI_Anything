@@ -49,25 +49,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: examples/package-lock.json
+          cache: pnpm
+          cache-dependency-path: examples/pnpm-lock.yaml
 
       - name: Install Playwright demo deps
         working-directory: examples
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install Chromium
         working-directory: examples
-        run: npx playwright install chromium
+        run: pnpm exec playwright install chromium
 
       - name: Verify demo fails on outdated selector
         working-directory: examples
         run: |
           set +e
-          npx playwright test example.spec.ts
+          pnpm exec playwright test example.spec.ts
           code=$?
           set -e
           if [ "$code" -eq 0 ]; then
@@ -107,25 +109,27 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --extra dev
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: examples/package-lock.json
+          cache: pnpm
+          cache-dependency-path: examples/pnpm-lock.yaml
 
       - name: Install Playwright demo deps
         working-directory: examples
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install Chromium
         working-directory: examples
-        run: npx playwright install chromium
+        run: pnpm exec playwright install chromium
 
       - name: Capture failing Playwright log
         working-directory: examples
         run: |
           set +e
-          npx playwright test example.spec.ts 2>&1 | tee playwright.log
+          pnpm exec playwright test example.spec.ts 2>&1 | tee playwright.log
           set -e
 
       - name: Dry-run heal against demo
