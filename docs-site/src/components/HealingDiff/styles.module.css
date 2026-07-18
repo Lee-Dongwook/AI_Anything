@@ -76,8 +76,7 @@
   color: var(--eeh-text-muted);
   font-family: var(--eeh-font-mono);
 }
-
-highlightBroken {
+.highlightBroken {
   background-color: var(--eeh-broken);
   color: var(--eeh-surface);
   border-radius: var(--eeh-radius-sm);
