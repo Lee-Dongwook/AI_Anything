@@ -1,36 +1,140 @@
 /**
  * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
+ * and scoped locally. Landing page (DESIGN.md §3.1) — tokens only, no raw values.
  */
 
-.heroBanner {
-  padding: 4rem 0;
+/* Shared page wrapper */
+.mainContent {
+  background: var(--eeh-bg);
+}
+
+/* Centered content column shared by hero + help-wanted */
+.contentContainer {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 var(--eeh-space-4);
+}
+
+/* ==========================================================================
+   Hero (DESIGN.md §3.1)
+   ========================================================================== */
+.hero {
+  padding: var(--eeh-space-10) 0;
   text-align: center;
-  position: relative;
-  overflow: hidden;
+  background: var(--eeh-bg);
+  border-bottom: 1px solid var(--eeh-border);
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--eeh-text);
+  margin-bottom: var(--eeh-space-4);
 }
 
-.buttons {
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: var(--eeh-text-muted);
+  max-width: 640px;
+  margin: 0 auto var(--eeh-space-6);
+}
+
+.heroActions {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--eeh-space-3);
 }
 
+/* CTA buttons */
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--eeh-space-3) var(--eeh-space-5);
+  border-radius: var(--eeh-radius-pill);
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: var(--eeh-transition);
+  border: 1px solid transparent;
+}
+
+.ctaButton:hover {
+  text-decoration: none;
+}
+
+.ctaPrimary {
+  background: var(--ifm-color-primary);
+  color: var(--eeh-bg);
+}
+
+.ctaPrimary:hover {
+  background: var(--ifm-color-primary-dark);
+  color: var(--eeh-bg);
+}
+
+.ctaSecondary {
+  background: var(--eeh-surface);
+  color: var(--eeh-text);
+  border-color: var(--eeh-border);
+}
+
+.ctaSecondary:hover {
+  background: var(--eeh-surface-raised);
+  color: var(--eeh-text);
+}
+
+/* ==========================================================================
+   Value props (DESIGN.md §3.1 — 3 short value props, cards)
+   ========================================================================== */
+.features {
+  padding: var(--eeh-space-10) 0;
+}
+
+.featuresGrid {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 var(--eeh-space-4);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--eeh-space-5);
+}
+
+.featureCard {
+  background: var(--eeh-surface);
+  border: 1px solid var(--eeh-border);
+  border-radius: var(--eeh-radius-md);
+  box-shadow: var(--eeh-shadow-card);
+  padding: var(--eeh-space-5);
+  transition: var(--eeh-transition);
+}
+
+.featureCard:hover {
+  background: var(--eeh-surface-raised);
+}
+
+.featureTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--eeh-text);
+  margin-bottom: var(--eeh-space-2);
+}
+
+.featureText {
+  font-size: 1rem;
+  color: var(--eeh-text-muted);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Help Wanted section (DESIGN.md §3.4 wrapper)
+   ========================================================================== */
 .helpWantedSection {
   padding: var(--eeh-space-10) 0;
   border-top: 1px solid var(--eeh-border);
-}
-
-@media screen and (max-width: 996px) {
-  .helpWantedSection {
-    padding: var(--eeh-space-6) 0;
-  }
 }
 
 .sectionHeader {
@@ -53,3 +157,31 @@
   margin: 0 auto;
 }
 
+/* ==========================================================================
+   Responsive (DESIGN.md §1.4 — stack multi-column, tighter spacing on mobile)
+   ========================================================================== */
+@media screen and (max-width: 996px) {
+  .hero {
+    padding: var(--eeh-space-6) 0;
+  }
+
+  .heroTitle {
+    font-size: 2.25rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.1rem;
+  }
+
+  .features {
+    padding: var(--eeh-space-6) 0;
+  }
+
+  .featuresGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .helpWantedSection {
+    padding: var(--eeh-space-6) 0;
+  }
+}
