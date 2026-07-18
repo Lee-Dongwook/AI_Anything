@@ -55,9 +55,11 @@
 
 ## 데모 (엔드투엔드 검증됨)
 
-[`examples/`](examples/) 프로젝트는 실제 브레이크를 재현합니다. 버튼 id가
-`submit-btn` → `submit`으로 바뀌어 `example.spec.ts`가 타임아웃납니다. 실제 NVIDIA 키로
-치유기를 돌리면:
+[`examples/`](examples/) 프로젝트는 엔진이 실제로 치유하는 실행 가능한 **React + Vite**
+앱입니다. 클린 체크아웃에서는 **green** 상태로, 모든 스펙이 실제 앱을 상대로 통과합니다.
+시나리오의 실제 `git diff`를 적용하면 깨집니다. [`id-rename`](examples/scenarios/id-rename/)
+시나리오는 버튼 id를 `submit-btn` → `submit`으로 바꿔 `scenarios/id-rename/spec.ts`가
+`#submit-btn`에서 타임아웃납니다. 실제 NVIDIA 키로 치유기를 돌리면:
 
 ```text
 diagnoser_finished
@@ -73,7 +75,7 @@ fixed after 0 loop(s)
 + await page.click("#submit");        # "Thanks!" 단언은 그대로 유지
 ```
 
-직접 재현: [`examples/README.md`](examples/README.md) 참고.
+직접 재현 (데모는 [pnpm](https://pnpm.io) 사용): [`examples/README.md`](examples/README.md) 참고.
 
 ## 실무 활용 사례
 

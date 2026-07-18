@@ -1,0 +1,9 @@
+# Allow all crawlers, including AI/generative engines (GEO).
+User-agent: *
+Allow: /
+
+# Sitemap for search engines. NOTE: on a GitHub Pages *project* site the
+# authoritative robots.txt lives at the domain root (lee-dongwook.github.io/robots.txt),
+# not under /E2E-Self-Heal/. So also submit this sitemap URL directly in
+# Google Search Console and Bing Webmaster Tools.
+Sitemap: https://lee-dongwook.github.io/E2E-Self-Heal/sitemap.xml

@@ -1,12 +1,24 @@
 {
-  "name": "e2e-healer-example",
+  "name": "e2e-healer-examples",
   "private": true,
   "version": "0.0.0",
-  "description": "Runnable Playwright demo for the AI-driven E2E self-healing engine",
+  "type": "module",
+  "description": "Runnable React + Vite demo app and Playwright scenarios for the E2E self-healing engine",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "playwright test"
   },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.48.0"
+    "@playwright/test": "^1.48.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
   }
 }

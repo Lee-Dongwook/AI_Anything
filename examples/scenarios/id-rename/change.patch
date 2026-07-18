@@ -1,0 +1,12 @@
+diff --git a/examples/demo-app/src/components/SubmitButton.tsx b/examples/demo-app/src/components/SubmitButton.tsx
+index 0212da1..7dab95f 100644
+--- a/examples/demo-app/src/components/SubmitButton.tsx
++++ b/examples/demo-app/src/components/SubmitButton.tsx
+@@ -1,6 +1,6 @@
+ export function SubmitButton() {
+   return (
+-    <button id="submit-btn" className="btn" type="submit">
++    <button id="submit" className="btn" type="submit">
+       Submit
+     </button>
+   );

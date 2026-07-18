@@ -1,0 +1,28 @@
+# E2E-Healer
+
+> Self-healing engine for Playwright E2E tests. When a UI change renames or
+> restructures an element and a test's selector breaks, an AI agent (built on
+> LangGraph) diagnoses the failure, patches the broken locator/wait, verifies the
+> new selector against the live DOM, and re-runs the test until it passes — as a
+> local CLI or a CI GitHub Action that opens a patch PR.
+
+Scope guardrail: E2E-Healer only fixes failing locators and wait conditions. It
+never edits assertions or test logic, so every patch is deterministic and
+human-reviewable.
+
+Two modes:
+- heal (default): patch the broken selector/wait and re-run until green.
+- review: diagnose why the selector broke and post source-level fix suggestions
+  as inline PR comments (e.g. "add a stable data-testid or use getByRole"); it
+  never edits the test.
+
+## Docs
+- Introduction: https://lee-dongwook.github.io/E2E-Self-Heal/docs/getting-started/introduction
+- Getting Started: https://lee-dongwook.github.io/E2E-Self-Heal/docs/getting-started/introduction
+- GitHub repository: https://github.com/Lee-Dongwook/E2E-Self-Heal
+
+## Key facts
+- Target audience: Frontend and QA engineers using Playwright (JavaScript/TypeScript).
+- Engine: Python + LangGraph agent (Diagnoser → Patch Generator → Selector Verifier → Test Runner).
+- Distribution: CLI core (`e2e-healer`) and a GitHub Action wrapper.
+- License: MIT. Free and open source.

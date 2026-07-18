@@ -24,21 +24,37 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: examples/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: examples/pnpm-lock.yaml
+
       - name: Install example Playwright project
         working-directory: examples
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
 
-      # Runs examples/example.spec.ts (fails on the renamed selector) and heals it
-      # using the shipped selector-rename.diff.
+      # The demo app is committed green; apply the real component change so the
+      # spec breaks on the renamed selector and the engine has something to heal.
+      - name: Apply the breaking change
+        working-directory: examples
+        run: git apply scenarios/id-rename/change.patch
+
+      # Runs examples/scenarios/id-rename/spec.ts (now failing on the renamed
+      # selector) and heals it using the scenario's change.patch.
       - name: E2E self-heal
         id: heal
         uses: ./
         with:
           working-directory: examples
-          test-path: example.spec.ts
-          diff-file: selector-rename.diff
+          test-path: scenarios/id-rename/spec.ts
+          diff-file: scenarios/id-rename/change.patch
           nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
 
       # If the core healed the test, open a PR with the patch for review.
@@ -50,7 +66,7 @@ jobs:
           title: "Auto-healed E2E test (self-demo)"
           body-path: ${{ steps.heal.outputs.summary-path }}
           branch: e2e-self-heal/${{ github.run_id }}
-          add-paths: examples/example.spec.ts
+          add-paths: examples/scenarios/id-rename/spec.ts
 
       # If it failed and could not be healed, fail the job so humans look.
       - name: Fail if unhealed

@@ -1,20 +1,21 @@
 import { defineConfig } from "@playwright/test";
 
-// Minimal config: serve this folder as a static site and run the spec against it.
-// A short timeout keeps the "broken selector" failure fast to reproduce.
+// Runs the scenario specs against the real React app. The webServer builds the Vite
+// app and serves it via `vite preview`, so a change applied to a component (e.g.
+// `git apply scenarios/id-rename/change.patch`) is reflected on the next test run.
 export default defineConfig({
-  testDir: ".",
-  testMatch: "**/*.spec.ts",
-  timeout: 15_000,
+  testDir: "./scenarios",
+  testMatch: ["**/spec.ts", "**/*.spec.ts"],
+  timeout: 30_000,
   expect: { timeout: 3_000 },
   use: {
     baseURL: "http://localhost:4173",
     actionTimeout: 3_000,
   },
   webServer: {
-    command: "python3 -m http.server 4173",
+    command: "pnpm build && pnpm preview",
     url: "http://localhost:4173",
-    reuseExistingServer: true,
-    timeout: 30_000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
 });

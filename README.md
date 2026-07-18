@@ -113,9 +113,12 @@ comments — a ready-to-copy workflow lives in
 
 ## Demo (verified end-to-end)
 
-The [`examples/`](examples/) project reproduces a real break: the page's button id was
-renamed `submit-btn` → `submit`, so `example.spec.ts` times out. Running the healer against
-it (with a live NVIDIA key) produces:
+The [`examples/`](examples/) project is a runnable **React + Vite** app the engine heals
+end to end. It ships **green** — on a clean checkout every spec passes against the real app.
+Applying a scenario's real `git diff` breaks it: the
+[`id-rename`](examples/scenarios/id-rename/) scenario renames the button id
+`submit-btn` → `submit`, so `scenarios/id-rename/spec.ts` times out on `#submit-btn`.
+Running the healer against it (with a live NVIDIA key) produces:
 
 ```text
 diagnoser_finished
@@ -131,7 +134,8 @@ fixed after 0 loop(s)
 + await page.click("#submit");        # assertion on "Thanks!" left untouched
 ```
 
-Reproduce it yourself: see [`examples/README.md`](examples/README.md).
+Reproduce it yourself (the demo uses [pnpm](https://pnpm.io)): see
+[`examples/README.md`](examples/README.md).
 
 ## In practice
 
@@ -239,12 +243,12 @@ changes.
 
 ### Provider matrix
 
-| Provider    | Install                        | Required env                                              | Structured outputs            | Notes                                                                 |
-| ----------- | ------------------------------ | -------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------- |
-| `nvidia`    | built-in (default)             | `E2E_HEALER_LLM_API_KEY` (or legacy `NVIDIA_API_KEY`)    | strict `json_schema`          | OpenAI-compatible NIM endpoint; default `openai/gpt-oss-120b`.        |
-| `openai`    | built-in                       | `E2E_HEALER_LLM_API_KEY` **or** `OPENAI_API_KEY`         | strict `json_schema` (native) | Set `LLM_BASE_URL` for Azure / OpenAI-compatible endpoints.           |
-| `anthropic` | `ai-driven-e2e[anthropic]`     | `E2E_HEALER_LLM_API_KEY` **or** `ANTHROPIC_API_KEY`      | tool-use                      | No OpenAI `response_format`; schema enforced via Claude tool-use.     |
-| `ollama`    | `ai-driven-e2e[ollama]`        | none (local)                                             | native JSON-schema `format`   | Fully offline; smaller models are less reliable at strict JSON.       |
+| Provider    | Install                    | Required env                                          | Structured outputs            | Notes                                                             |
+| ----------- | -------------------------- | ----------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| `nvidia`    | built-in (default)         | `E2E_HEALER_LLM_API_KEY` (or legacy `NVIDIA_API_KEY`) | strict `json_schema`          | OpenAI-compatible NIM endpoint; default `openai/gpt-oss-120b`.    |
+| `openai`    | built-in                   | `E2E_HEALER_LLM_API_KEY` **or** `OPENAI_API_KEY`      | strict `json_schema` (native) | Set `LLM_BASE_URL` for Azure / OpenAI-compatible endpoints.       |
+| `anthropic` | `ai-driven-e2e[anthropic]` | `E2E_HEALER_LLM_API_KEY` **or** `ANTHROPIC_API_KEY`   | tool-use                      | No OpenAI `response_format`; schema enforced via Claude tool-use. |
+| `ollama`    | `ai-driven-e2e[ollama]`    | none (local)                                          | native JSON-schema `format`   | Fully offline; smaller models are less reliable at strict JSON.   |
 
 All providers read the generic `E2E_HEALER_LLM_MODEL` / `E2E_HEALER_LLM_MAX_TOKENS` /
 `E2E_HEALER_LLM_BASE_URL`. On a structured-output parse failure the engine retries
@@ -303,32 +307,31 @@ E2E_HEALER_LLM_MODEL=llama3.1
 # E2E_HEALER_LLM_BASE_URL=http://localhost:11434   # default; override for a remote host
 ```
 
-| Variable                       | Default                               | Purpose                                        |
-| ------------------------------ | ------------------------------------- | ---------------------------------------------- |
+| Variable                       | Default                               | Purpose                                                |
+| ------------------------------ | ------------------------------------- | ------------------------------------------------------ |
 | `E2E_HEALER_LLM_PROVIDER`      | `nvidia`                              | LLM backend: `nvidia`, `openai`, `anthropic`, `ollama` |
-| `E2E_HEALER_LLM_API_KEY`       | —                                     | API key for the selected provider              |
-| `E2E_HEALER_LLM_BASE_URL`      | —                                     | OpenAI-compatible endpoint (empty = SDK default) |
-| `E2E_HEALER_LLM_MODEL`         | —                                     | Structured-Outputs-capable model               |
-| `E2E_HEALER_LLM_MAX_TOKENS`    | `4096`                                | Completion token cap (headroom for reasoning)  |
-| `E2E_HEALER_NVIDIA_API_KEY`    | —                                     | NVIDIA NIM API key (legacy; maps to `LLM_API_KEY`) |
-| `E2E_HEALER_NVIDIA_BASE_URL`   | `https://integrate.api.nvidia.com/v1` | OpenAI-compatible endpoint (legacy)            |
-| `E2E_HEALER_NVIDIA_MODEL`      | `openai/gpt-oss-120b`                 | Structured-Outputs-capable model (legacy)      |
-| `E2E_HEALER_NVIDIA_MAX_TOKENS` | `4096`                                | Completion token cap (legacy)                  |
-| `E2E_HEALER_MAX_LOOPS`         | `3`                                   | Repair loop cap                                |
-| `E2E_HEALER_PLAYWRIGHT_CMD`    | `npx playwright test`                 | Playwright invocation                          |
-| `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | Toggle live-DOM selector verification          |
-| `E2E_HEALER_APP_URL`           | —                                     | URL the Selector Verifier loads (empty = skip) |
-| `E2E_HEALER_NODE_CMD`          | `node`                                | Node executable for the verifier               |
-| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`, `relaxed`, or `off`                  |
-| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | Root for strict path checks                    |
-| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | Writable test-file globs                       |
-| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | Paths blocked by the sandbox                   |
-| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | Permit selector verifier helper file           |
+| `E2E_HEALER_LLM_API_KEY`       | —                                     | API key for the selected provider                      |
+| `E2E_HEALER_LLM_BASE_URL`      | —                                     | OpenAI-compatible endpoint (empty = SDK default)       |
+| `E2E_HEALER_LLM_MODEL`         | —                                     | Structured-Outputs-capable model                       |
+| `E2E_HEALER_LLM_MAX_TOKENS`    | `4096`                                | Completion token cap (headroom for reasoning)          |
+| `E2E_HEALER_NVIDIA_API_KEY`    | —                                     | NVIDIA NIM API key (legacy; maps to `LLM_API_KEY`)     |
+| `E2E_HEALER_NVIDIA_BASE_URL`   | `https://integrate.api.nvidia.com/v1` | OpenAI-compatible endpoint (legacy)                    |
+| `E2E_HEALER_NVIDIA_MODEL`      | `openai/gpt-oss-120b`                 | Structured-Outputs-capable model (legacy)              |
+| `E2E_HEALER_NVIDIA_MAX_TOKENS` | `4096`                                | Completion token cap (legacy)                          |
+| `E2E_HEALER_MAX_LOOPS`         | `3`                                   | Repair loop cap                                        |
+| `E2E_HEALER_PLAYWRIGHT_CMD`    | `npx playwright test`                 | Playwright invocation                                  |
+| `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | Toggle live-DOM selector verification                  |
+| `E2E_HEALER_APP_URL`           | —                                     | URL the Selector Verifier loads (empty = skip)         |
+| `E2E_HEALER_NODE_CMD`          | `node`                                | Node executable for the verifier                       |
+| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`, `relaxed`, or `off`                          |
+| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | Root for strict path checks                            |
+| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | Writable test-file globs                               |
+| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | Paths blocked by the sandbox                           |
+| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | Permit selector verifier helper file                   |
 
 > The `--app-url` CLI flag overrides `E2E_HEALER_APP_URL`. To actually run selector
 > verification locally, the Playwright project needs browsers installed
 > (`npm install && npx playwright install`).
-
 
 ## Development
 
@@ -357,19 +360,10 @@ Picking up a docs-site component issue? Read [`docs-site/DESIGN.md`](docs-site/D
 
 ## Contributing
 
-
-
 Contributions of every size are welcome — bug reports, docs, tests, or code. Start with
 [`CONTRIBUTING.md`](CONTRIBUTING.md), then browse
 [**good first issues**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/good%20first%20issue)
 and [**help wanted**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/help%20wanted).
-
-**🙋 We're actively looking for contributors on:**
-
-- [#3 — Build a real React + Vite frontend demo environment](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/3) for the Playwright examples
-
-See the [**v0.3 roadmap**](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/9) for the
-bigger picture. New to the project? Comment on an issue to claim it — we're happy to help.
 
 ## Limitations
 

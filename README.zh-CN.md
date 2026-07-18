@@ -56,9 +56,11 @@ LangGraph 修复循环由以下部分组成：
 
 ## 演示（已通过端到端验证）
 
-[`examples/`](examples/) 项目复现了一个真实故障：页面中按钮的 ID 从 `submit-btn` 改为
-`submit` 后，`example.spec.ts` 会因超时而失败。使用有效的 NVIDIA API 密钥运行本引擎后，
-输出如下：
+[`examples/`](examples/) 项目是一个可运行的 **React + Vite** 应用，引擎会对其进行端到端
+修复。它以 **green**（绿色）状态提交——干净检出时，所有 spec 都能针对真实应用通过。
+应用某个场景的真实 `git diff` 即可将其破坏：[`id-rename`](examples/scenarios/id-rename/)
+场景把按钮 ID 从 `submit-btn` 改为 `submit`，于是 `scenarios/id-rename/spec.ts` 在
+`#submit-btn` 上超时。使用有效的 NVIDIA API 密钥运行本引擎后，输出如下：
 
 ```text
 diagnoser_finished
@@ -74,7 +76,7 @@ fixed after 0 loop(s)
 + await page.click("#submit");        # assertion on "Thanks!" left untouched
 ```
 
-复现步骤请参阅 [`examples/README.md`](examples/README.md)。
+复现步骤请参阅 [`examples/README.md`](examples/README.md)（演示使用 [pnpm](https://pnpm.io)）。
 
 ## 实际案例
 
@@ -170,17 +172,17 @@ CI 可据此决定后续流程。
   id: heal
   uses: Lee-Dongwook/E2E-Self-Heal@v0.4.0
   with:
-    test-path: tests/example.spec.ts
-    nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
-    diff-base: ${{ github.event.pull_request.base.sha }}
-    app-url: http://localhost:4173 # optional: enables live selector verification
+      test-path: tests/example.spec.ts
+      nvidia-api-key: ${{ secrets.NVIDIA_API_KEY }}
+      diff-base: ${{ github.event.pull_request.base.sha }}
+      app-url: http://localhost:4173 # optional: enables live selector verification
 
 - name: Open patch PR
   if: steps.heal.outputs.outcome == 'healed'
   uses: peter-evans/create-pull-request@v6
   with:
-    body-path: ${{ steps.heal.outputs.summary-path }}
-    branch: e2e-self-heal/${{ github.run_id }}
+      body-path: ${{ steps.heal.outputs.summary-path }}
+      branch: e2e-self-heal/${{ github.run_id }}
 ```
 
 该 Action 的 `outcome` 取值为 `passed` \| `healed` \| `unhealed`。如果 Playwright
@@ -192,22 +194,22 @@ CI 可据此决定后续流程。
 
 所有配置项均以 `E2E_HEALER_` 开头（详见 [`.env.example`](.env.example)）：
 
-| 变量                           | 默认值                                | 用途                                             |
-| ------------------------------ | ------------------------------------- | ------------------------------------------------ |
-| `E2E_HEALER_NVIDIA_API_KEY`    | —                                     | NVIDIA NIM API 密钥                              |
-| `E2E_HEALER_NVIDIA_BASE_URL`   | `https://integrate.api.nvidia.com/v1` | 兼容 OpenAI API 的端点                           |
-| `E2E_HEALER_NVIDIA_MODEL`      | `openai/gpt-oss-120b`                 | 支持结构化输出（Structured Outputs）的模型       |
-| `E2E_HEALER_NVIDIA_MAX_TOKENS` | `4096`                                | 单次补全的 token 上限（为推理预留余量）          |
-| `E2E_HEALER_MAX_LOOPS`         | `3`                                   | 修复循环次数上限                                 |
-| `E2E_HEALER_PLAYWRIGHT_CMD`    | `npx playwright test`                 | Playwright 执行命令                              |
-| `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | 是否在实际页面的 DOM 中验证选择器                |
-| `E2E_HEALER_APP_URL`           | —                                     | 选择器验证器访问的应用 URL（未设置时跳过验证）   |
-| `E2E_HEALER_NODE_CMD`          | `node`                                | 选择器验证器使用的 Node.js 可执行程序            |
-| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`、`relaxed` 或 `off`                     |
-| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | `strict` 模式下进行路径检查时使用的根目录         |
-| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | 可写测试文件的匹配模式（glob）                   |
-| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | 沙箱禁止访问路径的匹配模式（glob）               |
-| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | 是否允许创建选择器验证器的临时辅助文件           |
+| 变量                           | 默认值                                | 用途                                           |
+| ------------------------------ | ------------------------------------- | ---------------------------------------------- |
+| `E2E_HEALER_NVIDIA_API_KEY`    | —                                     | NVIDIA NIM API 密钥                            |
+| `E2E_HEALER_NVIDIA_BASE_URL`   | `https://integrate.api.nvidia.com/v1` | 兼容 OpenAI API 的端点                         |
+| `E2E_HEALER_NVIDIA_MODEL`      | `openai/gpt-oss-120b`                 | 支持结构化输出（Structured Outputs）的模型     |
+| `E2E_HEALER_NVIDIA_MAX_TOKENS` | `4096`                                | 单次补全的 token 上限（为推理预留余量）        |
+| `E2E_HEALER_MAX_LOOPS`         | `3`                                   | 修复循环次数上限                               |
+| `E2E_HEALER_PLAYWRIGHT_CMD`    | `npx playwright test`                 | Playwright 执行命令                            |
+| `E2E_HEALER_VERIFY_SELECTORS`  | `true`                                | 是否在实际页面的 DOM 中验证选择器              |
+| `E2E_HEALER_APP_URL`           | —                                     | 选择器验证器访问的应用 URL（未设置时跳过验证） |
+| `E2E_HEALER_NODE_CMD`          | `node`                                | 选择器验证器使用的 Node.js 可执行程序          |
+| `E2E_HEALER_SANDBOX_MODE`      | `relaxed`                             | `strict`、`relaxed` 或 `off`                   |
+| `E2E_HEALER_WORKSPACE_ROOT`    | `.`                                   | `strict` 模式下进行路径检查时使用的根目录      |
+| `E2E_HEALER_WRITE_GLOBS`       | `*.spec.js,...`                       | 可写测试文件的匹配模式（glob）                 |
+| `E2E_HEALER_DENY_GLOBS`        | `.env,.git/**,...`                    | 沙箱禁止访问路径的匹配模式（glob）             |
+| `E2E_HEALER_ALLOW_TEMP_HELPER` | `true`                                | 是否允许创建选择器验证器的临时辅助文件         |
 
 > CLI 选项 `--app-url` 会覆盖 `E2E_HEALER_APP_URL`。如需在本地执行选择器验证，必须先安装
 > Playwright 所需的浏览器（`npm install && npx playwright install`）。
@@ -229,14 +231,6 @@ make test       # pytest
 [**good first issue**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/good%20first%20issue)
 或 [**help wanted**](https://github.com/Lee-Dongwook/E2E-Self-Heal/labels/help%20wanted)
 标签的 Issue。
-
-**🙋 以下任务目前正在招募贡献者：**
-
-- [#3 — 为 Playwright 示例搭建真实的 React + Vite 前端演示环境](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/3)
-- [#4 — 添加简体中文（zh-CN）README 译本](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/4) — 欢迎中文开发者参与！
-
-查看 [**v0.3 路线图**](https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/9)，了解项目的
-整体规划。第一次参与本项目？可以在对应 Issue 下留言认领任务，我们很乐意提供帮助。
 
 ## 限制
 

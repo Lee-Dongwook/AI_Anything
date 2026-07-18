@@ -28,11 +28,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: examples/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: examples/pnpm-lock.yaml
+
       - name: Install example Playwright project
         working-directory: examples
         run: |
-          npm install
-          npx playwright install --with-deps chromium
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
 
       # Run the suite and, on failure, produce a ReviewReport with source-level suggestions.
       # Use diff-base so finding paths are repo-root relative and line up with the PR diff.

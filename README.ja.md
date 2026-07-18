@@ -54,9 +54,12 @@
 
 ## デモ（エンドツーエンドで検証済み）
 
-[`examples/`](examples/) プロジェクトは実際の破損を再現します。ボタンの id が
-`submit-btn` → `submit` にリネームされ、`example.spec.ts` がタイムアウトします。
-（有効な NVIDIA キーで）ヒーラーを実行すると:
+[`examples/`](examples/) プロジェクトは、エンジンが実際に修復する実行可能な
+**React + Vite** アプリです。クリーンなチェックアウトでは **green** で、すべての spec が
+実アプリに対して通過します。シナリオの実際の `git diff` を適用すると破損します。
+[`id-rename`](examples/scenarios/id-rename/) シナリオはボタンの id を
+`submit-btn` → `submit` にリネームし、`scenarios/id-rename/spec.ts` が `#submit-btn` で
+タイムアウトします。（有効な NVIDIA キーで）ヒーラーを実行すると:
 
 ```text
 diagnoser_finished
@@ -72,7 +75,7 @@ fixed after 0 loop(s)
 + await page.click("#submit");        # "Thanks!" アサーションはそのまま
 ```
 
-自分で再現する: [`examples/README.md`](examples/README.md) を参照。
+自分で再現する（デモは [pnpm](https://pnpm.io) を使用）: [`examples/README.md`](examples/README.md) を参照。
 
 ## 実運用での例
 
