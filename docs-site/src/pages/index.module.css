@@ -1,55 +1,156 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
-
-.heroBanner {
-  padding: 4rem 0;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
-}
-
-.buttons {
+.mainContent {
   display: flex;
+  flex-direction: column;
   align-items: center;
+}
+
+.contentContainer {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 var(--eeh-space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero {
+  width: 100%;
+  padding: var(--eeh-space-6) 0;
+  text-align: center;
+  display: flex;
   justify-content: center;
 }
 
-.helpWantedSection {
-  padding: var(--eeh-space-10) 0;
-  border-top: 1px solid var(--eeh-border);
+.heroTitle {
+  font-family: var(--eeh-font-sans);
+  font-size: 2.5rem;
+  color: var(--eeh-text);
+  margin-bottom: var(--eeh-space-4);
 }
 
-@media screen and (max-width: 996px) {
-  .helpWantedSection {
-    padding: var(--eeh-space-6) 0;
-  }
+.heroSubtitle {
+  font-family: var(--eeh-font-sans);
+  color: var(--eeh-text-muted);
+  font-size: 1.15rem;
+  margin-bottom: var(--eeh-space-8);
+  max-width: 600px;
+}
+
+.heroActions {
+  display: flex;
+  gap: var(--eeh-space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctaButton {
+  font-family: var(--eeh-font-sans);
+  font-weight: 600;
+  padding: var(--eeh-space-3) var(--eeh-space-6);
+  border-radius: var(--eeh-radius-pill);
+  text-decoration: none;
+  transition: var(--eeh-transition);
+}
+
+.ctaPrimary {
+  background-color: var(--ifm-color-primary);
+  color: var(--eeh-bg);
+}
+
+.ctaPrimary:hover {
+  background-color: var(--eeh-text);
+  color: var(--eeh-bg);
+  text-decoration: none;
+}
+
+.ctaSecondary {
+  background-color: var(--eeh-surface);
+  border: 1px solid var(--eeh-border);
+  color: var(--eeh-text);
+}
+
+.ctaSecondary:hover {
+  background-color: var(--eeh-surface-raised);
+  color: var(--eeh-text);
+  text-decoration: none;
+}
+
+.features {
+  width: 100%;
+  padding: var(--eeh-space-6) var(--eeh-space-4);
+  display: flex;
+  justify-content: center;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--eeh-space-4);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.featureCard {
+  background-color: var(--eeh-surface);
+  border: 1px solid var(--eeh-border);
+  border-radius: var(--eeh-radius-md);
+  padding: var(--eeh-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--eeh-space-2);
+}
+
+.featureTitle {
+  font-family: var(--eeh-font-sans);
+  color: var(--eeh-text);
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.featureText {
+  font-family: var(--eeh-font-sans);
+  color: var(--eeh-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.helpWantedSection {
+  width: 100%;
+  padding: var(--eeh-space-6) 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--eeh-border);
 }
 
 .sectionHeader {
   text-align: center;
   margin-bottom: var(--eeh-space-6);
-  padding: 0 var(--eeh-space-4);
 }
 
 .sectionTitle {
-  font-size: 2rem;
-  font-weight: 800;
+  font-family: var(--eeh-font-sans);
   color: var(--eeh-text);
   margin-bottom: var(--eeh-space-2);
 }
 
 .sectionSubtitle {
-  font-size: 1.1rem;
+  font-family: var(--eeh-font-sans);
   color: var(--eeh-text-muted);
-  max-width: 600px;
-  margin: 0 auto;
+  margin: 0;
 }
 
+@media (min-width: 768px) {
+  .hero, .features, .helpWantedSection {
+    padding-top: var(--eeh-space-10);
+    padding-bottom: var(--eeh-space-10);
+  }
+  
+  .heroTitle {
+    font-size: 3.5rem;
+  }
+  
+  .featuresGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--eeh-space-6);
+  }
+}
