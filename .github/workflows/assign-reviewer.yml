@@ -19,19 +19,33 @@ jobs:
         with:
           script: |
             const MAINTAINERS = ['Lee-Dongwook', 'Avaneesh635', 'Adityai1411'];
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
             const author = context.payload.pull_request.user.login;
 
             // Never ask someone to review their own PR.
-            const reviewers = MAINTAINERS.filter((login) => login !== author);
-            if (reviewers.length === 0) {
+            const candidates = MAINTAINERS.filter((login) => login !== author);
+            if (candidates.length === 0) {
               core.info(`No reviewers to request (author "${author}" is the only maintainer).`);
               return;
             }
 
-            await github.rest.pulls.requestReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              reviewers,
-            });
-            core.info(`Requested review from ${reviewers.join(', ')}`);
+            // Request each reviewer independently. requestReviewers is atomic per call,
+            // so a single non-collaborator (e.g. a pending invite that 422s) would sink
+            // the whole batch and assign nobody. Per-reviewer calls isolate that failure.
+            const requested = [];
+            const skipped = [];
+            for (const login of candidates) {
+              try {
+                await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers: [login] });
+                requested.push(login);
+              } catch (error) {
+                core.info(`Skipping "${login}": ${error.status} — ${error.message}`);
+                skipped.push(login);
+              }
+            }
+
+            core.info(`Requested review from: ${requested.join(', ') || '(none)'}`);
+            if (skipped.length > 0) {
+              core.info(`Skipped (not assignable, likely pending invite): ${skipped.join(', ')}`);
+            }
