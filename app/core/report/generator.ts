@@ -24,7 +24,7 @@ export function redactPaths(text: string): string {
 function prefixLines(text: string, prefix: string): string {
   return text
     .split(/\r?\n/)
-    .map(line => `${prefix}${line}`)
+    .map(line => prefix + ' ' + line)
     .join('\n');
 }
 
