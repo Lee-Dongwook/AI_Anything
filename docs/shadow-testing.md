@@ -72,16 +72,17 @@ isolates each network interaction, and abstracts it into typed request/response 
 discarding everything irrelevant to replay.
 
 **Consumes:** a trace file path.
-**Produces:** a `ShadowSnapshot` containing a list of `NetworkSnapshot` objects
-(each a `CapturedRequest` + `CapturedResponse` pair).
+**Produces:** a `list[NetworkSnapshot]` (each a `CapturedRequest` + `CapturedResponse` pair).
+The downstream Snapshot Store wraps this list into a `ShadowSnapshot` when persisting.
 
 **Contract / current state:** implemented as
 [`PlaywrightTraceParser`](../app/shadow/trace_parser.py) behind the
 [`ITraceParser`](../app/shadow/interfaces.py) interface — it reads a Playwright `trace.zip`
-and extracts its `resource-snapshot` (HAR) entries into `NetworkSnapshot`s. A standalone
-`.har`-file parser (a different input format) is still an open extension point (see
-[Extension points](#extension-points)). It is the analogue of the Error Log Parser in the
-heal pipeline: it keeps noisy, oversized raw input from flowing downstream unabstracted.
+and extracts its `resource-snapshot` (HAR) entries into `NetworkSnapshot`s. The `parse()`
+method returns `list[NetworkSnapshot]` directly, matching the `ITraceParser` interface.
+A standalone `.har`-file parser (a different input format) is still an open extension point
+(see [Extension points](#extension-points)). It is the analogue of the Error Log Parser in
+the heal pipeline: it keeps noisy, oversized raw input from flowing downstream unabstracted.
 
 ### 3. Snapshot Store
 

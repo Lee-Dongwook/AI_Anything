@@ -12,12 +12,17 @@ All notable changes to this project are documented here. The format is based on
 - Architecture-boundary enforcement in the Patch Generator — patches are constrained to stay
   within configured module boundaries and can no longer leak across architectural lines.
 - Real **React + Vite** demo app under `examples/` with an id-rename breakage scenario, for
-  reproducible end-to-end tries.
+  reproducible end-to-end tests.
 - Documentation site (Docusaurus) with GitHub Pages deploy, SEO/GEO metadata, and analytics.
 
 ## [0.4.0] - 2026-07-17
 
 ### Added
+- **Shadow Testing** execution mode — replay tests against captured, deterministic network
+  snapshots instead of a live backend. The full pipeline (trace parser, snapshot store, mock
+  injector, matcher, and runtime orchestration) is implemented and integrated into the heal
+  graph via the `shadow_verifier` node, enabling fast, repeatable, side-effect-free patch
+  verification before a full live test run. Activated with `--shadow`.
 - Multi-provider LLM support: **OpenAI**, **Anthropic (Claude)**, and **Ollama** (local,
   offline) alongside the existing NVIDIA NIM, selected via `E2E_HEALER_LLM_PROVIDER`.
   Configuration is provider-neutral (`E2E_HEALER_LLM_*`); the standard `OPENAI_API_KEY` /
