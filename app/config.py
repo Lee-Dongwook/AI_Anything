@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     )
     jsx_chunk_margin_lines: int = Field(
         default=1,
+        ge=0,
         description="extra context lines around the enclosing JSX element chunk",
     )
     sandbox_mode: str = Field(

@@ -55,3 +55,8 @@ def test_known_providers_are_accepted(provider):
 def test_unknown_provider_is_rejected():
     with pytest.raises(ValidationError):
         make_settings(llm_provider="foobar")
+
+
+def test_jsx_chunk_margin_lines_rejects_negative_values():
+    with pytest.raises(ValidationError):
+        make_settings(jsx_chunk_margin_lines=-1)
