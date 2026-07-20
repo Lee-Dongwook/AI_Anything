@@ -148,8 +148,8 @@ def _detect_framework_from_package_json(test_script_path: Path) -> FrameworkName
         if not package_json.exists():
             continue
         try:
-            package = json.loads(package_json.read_text())
-        except (OSError, json.JSONDecodeError):
+            package = json.loads(package_json.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
             continue
         dependencies = {
             **package.get("dependencies", {}),
