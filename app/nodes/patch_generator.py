@@ -1,11 +1,16 @@
 """Patch Generator node: produce a narrow, schema-constrained fix."""
 
 from pathlib import Path
+from typing import cast
 
 import structlog
 
 from app.llm import generate_patch
-from app.prompts.patch_generator import build_system_prompt, detect_framework
+from app.prompts.patch_generator import (
+    DomDiffEntry,
+    build_system_prompt,
+    detect_framework,
+)
 from app.sandbox import SandboxViolation, assert_patch_boundary_allowed
 from app.schemas import PatchInstruction
 from app.state import AgentState
@@ -51,7 +56,7 @@ def patch_generator(state: AgentState) -> dict:
     framework = state.get("detected_framework") or detect_framework(
         state["test_script_path"],
         state["current_code"],
-        state["dom_diff_context"],
+        cast("list[DomDiffEntry]", state["dom_diff_context"]),
     )
     system_prompt = build_system_prompt(framework)
     try:

@@ -1,11 +1,19 @@
 """System prompt for the Patch Generator node (carries the code-integrity guardrail)."""
 
 import json
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Literal, Mapping, TypedDict
 
 FrameworkName = Literal["react", "vue", "svelte", "generic"]
+
+
+class DomDiffEntry(TypedDict, total=False):
+    """Structural type for DOM-diff entries consumed by framework detection."""
+
+    file: str
 
 
 @dataclass(frozen=True)
@@ -39,8 +47,8 @@ SELECTOR_PROMPT_STRATEGIES: Mapping[FrameworkName, SelectorPromptStrategy] = {
             "getByRole()/role= with accessible names first, then getByLabel()/getByText() when "
             "stable, then getByTestId()/data-testid for intentionally stable hooks. Avoid "
             "generated class names, CSS-module hashes, and implementation-only component markup. "
-            "For React async rendering or hydration timing, prefer locator assertions/waits such "
-            "as expect(locator).toBeVisible() or locator.waitFor() over arbitrary timeouts."
+            "For React async rendering or hydration timing, prefer locator waits "
+            "such as locator.waitFor() or page.waitForSelector() over arbitrary fixed timeouts."
         ),
     ),
     "vue": SelectorPromptStrategy(
@@ -50,7 +58,7 @@ SELECTOR_PROMPT_STRATEGIES: Mapping[FrameworkName, SelectorPromptStrategy] = {
             "data-testid or data-test attributes commonly used in Vue apps. Avoid scoped-style "
             "artifacts such as data-v-* attributes, generated classes, and transient dynamic ids. "
             "For async component updates, route changes, or transitions, prefer locator-aware "
-            "Playwright waits/assertions instead of fixed sleeps."
+            "Playwright waits such as locator.waitFor() instead of fixed sleeps."
         ),
     ),
     "svelte": SelectorPromptStrategy(
@@ -59,8 +67,8 @@ SELECTOR_PROMPT_STRATEGIES: Mapping[FrameworkName, SelectorPromptStrategy] = {
             "Detected framework: Svelte. Prefer accessible role/name locators, then stable "
             "data-testid or data-test hooks. Avoid compiled Svelte class names, generated "
             "attributes, transition-only state, and DOM structure that may shift during "
-            "compilation. For transitions or reactive updates, prefer locator.waitFor() or "
-            "expect(locator).toBeVisible()/toBeAttached() over arbitrary timeouts."
+            "compilation. For transitions or reactive updates, prefer locator "
+            "waits such as locator.waitFor() or page.waitForSelector() over arbitrary timeouts."
         ),
     ),
     "generic": SelectorPromptStrategy(
@@ -69,7 +77,7 @@ SELECTOR_PROMPT_STRATEGIES: Mapping[FrameworkName, SelectorPromptStrategy] = {
             "Detected framework: generic or unknown. Prefer resilient Playwright locators in this "
             "order: role/name, label, text that reflects user-visible intent, then stable "
             "data-testid/data-test hooks. Avoid brittle CSS classes, generated ids, and DOM-depth "
-            "selectors. Use locator-aware waits/assertions instead of fixed sleeps."
+            "selectors. Use locator-aware waits such as locator.waitFor() instead of fixed sleeps."
         ),
     ),
 }
@@ -92,22 +100,37 @@ def selector_strategy_for(framework: str | None) -> SelectorPromptStrategy:
     return SELECTOR_PROMPT_STRATEGIES[normalize_framework(framework)]
 
 
+# Word-boundary patterns so substrings inside filenames or prose (e.g. "react" in
+# "reactive-form.vue", or "next" in "the next button") do not trigger false matches.
+# Bare "next" is intentionally excluded; only Next.js import-style markers count.
+_VUE_PATTERN = re.compile(r"\bvue(?:js|3|\.js)?\b|\bnuxt(?:js|\.js)?\b")
+_SVELTE_PATTERN = re.compile(r"\bsvelte(?:kit|-kit)?\b")
+_REACT_PATTERN = re.compile(r"\breact(?:js|\.js|-dom)?\b|\bnext(?:js|\.js)\b|\bnext/")
+
+
 def detect_framework(
     test_script_path: str,
     current_code: str,
-    dom_diff_context: list[dict],
+    dom_diff_context: Sequence[DomDiffEntry],
 ) -> FrameworkName:
-    """Infer the app framework from changed files, test imports, and nearby package.json files."""
-    text = current_code.lower()
-    diff_files = " ".join(str(item.get("file", "")).lower() for item in dom_diff_context)
-    combined = f"{text} {diff_files}"
+    """Infer the app framework from changed files, test imports, and nearby package.json files.
 
-    if any(marker in combined for marker in ("react", ".jsx", ".tsx", "next/")):
-        return "react"
-    if any(marker in combined for marker in ("vue", ".vue", "nuxt")):
+    Unambiguous signals (file extensions in the diff, token-aware framework names) are
+    checked first, Vue/Svelte before React, so React substrings inside Vue/Svelte file
+    names cannot shadow the real framework. Falls back to nearby package.json deps.
+    """
+    text = current_code.lower()
+    diff_files = [str(item.get("file", "")).lower() for item in dom_diff_context]
+    combined = f"{text} {' '.join(diff_files)}"
+
+    if any(name.endswith(".vue") for name in diff_files) or _VUE_PATTERN.search(combined):
         return "vue"
-    if any(marker in combined for marker in ("svelte", ".svelte")):
+    if any(name.endswith(".svelte") for name in diff_files) or _SVELTE_PATTERN.search(combined):
         return "svelte"
+    if any(name.endswith((".jsx", ".tsx")) for name in diff_files) or _REACT_PATTERN.search(
+        combined
+    ):
+        return "react"
 
     return _detect_framework_from_package_json(Path(test_script_path))
 

@@ -1,9 +1,11 @@
+import pytest
+
 import app.nodes.patch_generator as patch_node
 from app.schemas import PatchOutput
 from app.state import AgentState
 
 
-def _state(**overrides) -> AgentState:
+def _state(**overrides: object) -> AgentState:
     base: AgentState = {
         "test_script_path": "tests/login.spec.ts",
         "original_code": "await page.locator('#old').click()\n",
@@ -21,10 +23,12 @@ def _state(**overrides) -> AgentState:
     return base
 
 
-def test_patch_generator_uses_detected_framework_guidance(monkeypatch):
+def test_patch_generator_uses_detected_framework_guidance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     prompts: list[str] = []
 
-    def fake_generate_patch(system_prompt, user_prompt):
+    def fake_generate_patch(system_prompt: str, user_prompt: str) -> PatchOutput:
         prompts.append(system_prompt)
         return PatchOutput(instructions=[])
 
@@ -37,10 +41,12 @@ def test_patch_generator_uses_detected_framework_guidance(monkeypatch):
     assert "NEVER change assertions" in prompts[0]
 
 
-def test_patch_generator_prefers_explicit_framework_hint(monkeypatch):
+def test_patch_generator_prefers_explicit_framework_hint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     prompts: list[str] = []
 
-    def fake_generate_patch(system_prompt, user_prompt):
+    def fake_generate_patch(system_prompt: str, user_prompt: str) -> PatchOutput:
         prompts.append(system_prompt)
         return PatchOutput(instructions=[])
 
