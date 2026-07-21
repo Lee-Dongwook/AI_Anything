@@ -310,8 +310,12 @@ def test_cli_init_scaffolds_workflow_successfully(monkeypatch, tmp_path):
     # Change working directory to a temporary path so we don't overwrite your actual files
     monkeypatch.chdir(tmp_path)
 
+    # Create a dummy playwright config so the readiness check exits with code 0
+    (tmp_path / "playwright.config.ts").write_text("export default {}")
+
     runner = CliRunner()
-    result = runner.invoke(app, ["init"])
+    # Added "--scaffold" to trigger the workflow creation
+    result = runner.invoke(app, ["init", "--scaffold"])
 
     assert result.exit_code == 0
     assert "Successfully scaffolded starter workflow" in result.stderr
@@ -324,6 +328,9 @@ def test_cli_init_scaffolds_workflow_successfully(monkeypatch, tmp_path):
 def test_cli_init_prevents_overwrite_unless_forced(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
 
+    # Create a dummy playwright config so the readiness check exits with code 0 on success
+    (tmp_path / "playwright.config.ts").write_text("export default {}")
+
     # Pre-create the file with dummy text
     target_dir = tmp_path / ".github" / "workflows"
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -333,13 +340,15 @@ def test_cli_init_prevents_overwrite_unless_forced(monkeypatch, tmp_path):
     runner = CliRunner()
 
     # 1. Try running without force flag -> Should fail and not change file
-    result = runner.invoke(app, ["init"])
+    # Added "--scaffold" to trigger the overwrite prevention logic
+    result = runner.invoke(app, ["init", "--scaffold"])
     assert result.exit_code == 1
     assert "Workflow file already exists" in result.stderr
     assert target_file.read_text() == "old content"
 
     # 2. Try running with force flag -> Should succeed and overwrite file
-    result_forced = runner.invoke(app, ["init", "--force"])
+    # Added "--scaffold" along with "--force"
+    result_forced = runner.invoke(app, ["init", "--scaffold", "--force"])
     assert result_forced.exit_code == 0
     assert "Successfully scaffolded" in result_forced.stderr
     assert "E2E Self-Healing CI" in target_file.read_text()
