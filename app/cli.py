@@ -1,6 +1,8 @@
 """CLI core: the single entry point for a repair run (also what CI invokes)."""
 
 import difflib
+import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -43,11 +45,11 @@ WORKFLOW_TARGET_PATH = Path(".github/workflows/e2e-healer.yml")
 
 
 class _DefaultCommandGroup(TyperGroup):
-    """Route a bare invocation to ``heal`` so ``e2e-healer <path>`` keeps working.
+    """Route a bare invocation to `heal` so `e2e-healer <path>` keeps working.
 
-    Adding the ``review`` subcommand would otherwise force every caller (and the shipped
-    action.yml) to spell out ``heal``; instead we inject ``heal`` whenever the first token
-    is not a known command or option. Explicit ``heal``/``review`` still route normally.
+    Adding the review subcommand would otherwise force every caller (and the shipped
+    action.yml) to spell out heal; instead we inject heal whenever the first token
+    is not a known command or option. Explicit heal/review still route normally.
     """
 
     default_command = "heal"
@@ -101,7 +103,7 @@ def main(
 def _read_diff(diff_file: Optional[Path], diff_base: Optional[str]) -> str:
     """Return the git diff from a file, else `git diff [base...HEAD]`.
 
-    ``diff_base`` (e.g. a PR base ref) scopes the diff to `base...HEAD`, which is what
+    diff_base (e.g. a PR base ref) scopes the diff to `base...HEAD`, which is what
     the CI/PR path needs; without it we fall back to the working-tree `git diff`.
     """
     if diff_file is not None:
@@ -150,15 +152,11 @@ def _heal_file(
         "loop_count": 0,
         "is_success": False,
     }
-
     logger.info("repair_run_started", test_script_path=str(test_path))
     final_state = build_graph().invoke(initial_state)
-
     if dry_run or not final_state["is_success"]:
         atomic_write(test_path, original_code)
-
     _render_diff(original_code, final_state["current_code"], str(test_path))
-
     instructions = final_state["patch_instructions"] or {}
     summary = RepairSummary(
         test_script_path=final_state["test_script_path"],
@@ -179,7 +177,6 @@ def _heal_suite(suite_target: str, dom_diff_context: list[dict], dry_run: bool) 
     passed, raw_log = run_playwright(suite_target)
     if passed:
         return SuiteSummary(total_failed=0, healed=0, is_success=True)
-
     results: list[RepairSummary] = []
     for rel in scan_failing_tests(raw_log):
         path = Path(rel)
@@ -197,7 +194,6 @@ def _heal_suite(suite_target: str, dom_diff_context: list[dict], dry_run: bool) 
             results.append(RepairSummary(test_script_path=rel, is_success=True, loop_count=0))
             continue
         results.append(_heal_file(path, focused_log, dom_diff_context, dry_run))
-
     healed = sum(1 for r in results if r.is_success)
     return SuiteSummary(
         total_failed=len(results),
@@ -225,10 +221,8 @@ def _review_file(test_path: Path, raw_log: str, dom_diff_context: list[dict]) ->
         "loop_count": 0,
         "is_success": False,
     }
-
     logger.info("review_run_started", test_script_path=str(test_path))
     final_state = build_review_graph().invoke(initial_state)
-
     findings = [ReviewFinding(**f) for f in final_state["review_report"].get("findings", [])]
     report = ReviewReport(
         test_script_path=str(test_path), findings=findings, has_findings=len(findings) > 0
@@ -368,7 +362,6 @@ def review(
             if passed:
                 console.print("[green]test passes[/green] — nothing to review")
                 raise typer.Exit(code=0)
-
         report = _review_file(test_path, raw_log, dom_diff_context)
         if json_output:
             typer.echo(report.model_dump_json())
@@ -380,32 +373,151 @@ def review(
         raise typer.Exit(code=2) from exc
 
 
-# Place this at the bottom of app/cli.py, right before: if __name__ == "__main__":
-
-
 @app.command()
 def init(
+    scaffold: bool = typer.Option(
+        False, "--scaffold", "-s", help="Also scaffold a starter GitHub Actions workflow."
+    ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing workflow configuration if it exists."
     ),
 ) -> None:
-    """Initialize a starter GitHub Actions workflow configuration for E2E self-healing."""
+    """Analyze the repository and print a readiness report for E2E self-healing."""
+    console.print(Panel("E2E Self-Heal Readiness Report", style="bold blue"))
 
-    # 1. Using the global variable instead of a local target_path
-    if WORKFLOW_TARGET_PATH.exists() and not force:
+    # 1. Detect Playwright config
+    pw_configs = list(Path(".").glob("playwright.config.*"))
+    has_pw_config = len(pw_configs) > 0
+    pw_config_name = pw_configs[0].name if has_pw_config else "None"
+
+    # 2. Detect test directory and count tests (exclude dependency directories)
+    test_patterns = ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.js", "**/*.test.js"]
+    test_files = []
+    for pattern in test_patterns:
+        for path in Path(".").rglob(pattern.split("/")[-1]):
+            if "node_modules" not in path.parts and ".git" not in path.parts:
+                if path.match(pattern):
+                    test_files.append(path)
+    test_files = list(set(test_files))
+    test_count = len(test_files)
+
+    test_dirs = list(set(f.parent for f in test_files))
+    test_dir_str = ", ".join(str(d) for d in test_dirs) if test_dirs else "Not found"
+
+    # 3. Check LLM provider configuration
+    llm_provider = os.getenv("E2E_HEALER_LLM_PROVIDER", "nvidia (default)")
+    has_api_key = bool(
+        os.getenv("E2E_HEALER_LLM_API_KEY")
+        or os.getenv("NVIDIA_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("ANTHROPIC_API_KEY")
+    )
+
+    # 4. Check if Playwright is in package.json
+    pw_installed = False
+    pkg_json = Path("package.json")
+    if pkg_json.exists():
+        try:
+            pkg_data = json.loads(pkg_json.read_text(encoding="utf-8"))
+            deps = {**pkg_data.get("dependencies", {}), **pkg_data.get("devDependencies", {})}
+            pw_installed = "playwright" in deps or "@playwright/test" in deps
+        except Exception:
+            pass
+
+    # Build the report table
+    table = Table(show_header=False, box=None, padding=(0, 2))
+    table.add_column("Check", style="cyan", justify="right")
+    table.add_column("Status", style="white")
+
+    table.add_row(
+        "Playwright Config",
+        f"[green]✓ Found[/green] ({pw_config_name})" if has_pw_config else "[red]✗ Not found[/red]",
+    )
+    table.add_row(
+        "Playwright in package.json",
+        "[green]✓ Yes[/green]" if pw_installed else "[yellow]⚠ Not detected[/yellow]",
+    )
+    table.add_row(
+        "Test Files",
+        f"[green]✓ {test_count} found[/green]" if test_count > 0 else "[red]✗ 0 found[/red]",
+    )
+    if test_dirs and test_count > 0:
+        table.add_row("Test Directories", f"[dim]{test_dir_str}[/dim]")
+
+    table.add_row("LLM Provider", f"[green]✓ {llm_provider}[/green]")
+    table.add_row(
+        "API Key",
+        "[green]✓ Configured[/green]"
+        if has_api_key
+        else "[red] Missing (set E2E_HEALER_LLM_API_KEY or provider-specific key)[/red]",
+    )
+
+    console.print(table)
+    console.print()
+
+    # Compute readiness
+    is_playwright_present = has_pw_config or pw_installed or test_count > 0
+    is_ready = has_api_key and is_playwright_present
+
+    # Show warning if Playwright is absent
+    if not is_playwright_present:
         console.print(
-            f"[yellow]Workflow file already exists at {WORKFLOW_TARGET_PATH}. Use --force to overwrite.[/yellow]"
+            Panel(
+                "[yellow]Warning:[/yellow] This does not look like a Playwright project.\n"
+                "Please run this command in the root directory of a Playwright project.",
+                title="Playwright Not Detected",
+                border_style="yellow",
+            )
         )
-        raise typer.Exit(code=1)
 
-    # 2. Wrapped folder creation in a try-except block
-    try:
-        WORKFLOW_TARGET_PATH.parent.mkdir(parents=True, exist_ok=True)
-    except Exception as e:
-        console.print(f"[red]Failed to create directory {WORKFLOW_TARGET_PATH.parent}: {e}[/red]")
-        raise typer.Exit(code=1)
+    # Show configuration warning if API key is missing
+    if not has_api_key:
+        console.print(
+            Panel(
+                "[yellow]Action Required:[/yellow] Please set your LLM API key in the environment or a `.env` file.\n"
+                "Example: `export E2E_HEALER_LLM_API_KEY=your_key_here`\n"
+                "See: https://github.com/Lee-Dongwook/E2E-Self-Heal#configuration",
+                title="Configuration Needed",
+                border_style="yellow",
+            )
+        )
 
-    yaml_template = """name: E2E Self-Healing CI
+    # Show "Ready to Go" only if fully ready
+    if is_ready:
+        console.print(
+            Panel(
+                "[green]✓ Repository is ready for E2E Self-Healing![/green]\n\n"
+                "Next steps:\n"
+                "  1. Ensure browsers are installed: [bold]npx playwright install[/bold]\n"
+                "  2. Run a test heal: [bold]e2e-healer <path-to-failing-test>[/bold]\n"
+                "  3. Use [bold]--scaffold[/bold] flag to generate a GitHub Actions workflow.",
+                title="Ready to Go",
+                border_style="green",
+            )
+        )
+        exit_code = 0
+    else:
+        console.print(
+            Panel(
+                "Once you've configured your API key and have Playwright tests, "
+                "you'll be ready to use E2E Self-Healing!",
+                title="Next Steps",
+                border_style="yellow",
+            )
+        )
+        exit_code = 1 if not is_playwright_present else 0
+
+    # Scaffolding (when explicitly requested)
+    if scaffold:
+        if WORKFLOW_TARGET_PATH.exists() and not force:
+            console.print(
+                f"[yellow]Workflow file already exists at {WORKFLOW_TARGET_PATH}. Use --force to overwrite.[/yellow]"
+            )
+            raise typer.Exit(code=1)
+        else:
+            try:
+                WORKFLOW_TARGET_PATH.parent.mkdir(parents=True, exist_ok=True)
+                yaml_template = """name: E2E Self-Healing CI
 on:
   push:
     branches: [ main ]
@@ -416,16 +528,15 @@ jobs:
       - uses: actions/checkout@v4
       # add steps to invoke e2e-healer
 """
+                WORKFLOW_TARGET_PATH.write_text(yaml_template)
+                console.print(
+                    f"[green]Successfully scaffolded starter workflow at {WORKFLOW_TARGET_PATH}![/green]"
+                )
+            except Exception as e:
+                console.print(f"[red]Failed to write workflow file: {e}[/red]")
+                raise typer.Exit(code=1)
 
-    # 3. Wrapped file writing in a try-except block too
-    try:
-        WORKFLOW_TARGET_PATH.write_text(yaml_template)
-        console.print(
-            f"[green]Successfully scaffolded starter workflow at {WORKFLOW_TARGET_PATH}![/green]"
-        )
-    except Exception as e:
-        console.print(f"[red]Failed to write workflow file: {e}[/red]")
-        raise typer.Exit(code=1)
+    raise typer.Exit(code=exit_code)
 
 
 if __name__ == "__main__":
