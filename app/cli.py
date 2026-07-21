@@ -45,11 +45,18 @@ WORKFLOW_TARGET_PATH = Path(".github/workflows/e2e-healer.yml")
 
 
 class _DefaultCommandGroup(TyperGroup):
-    """Route a bare invocation to `heal` so `e2e-healer <path>` keeps working."""
+    """Route a bare invocation to `heal` so `e2e-healer <path>` keeps working.
+
+    Adding the review subcommand would otherwise force every caller (and the shipped
+    action.yml) to spell out heal; instead we inject heal whenever the first token
+    is not a known command or option. Explicit heal/review still route normally.
+    """
 
     default_command = "heal"
 
-    def parse_args(self, ctx, args):
+    def parse_args(self, ctx, args):  # types inherited from TyperGroup
+        # Inject "heal" for a bare run or a leading non-command token (a test path), so
+        # `e2e-healer` and `e2e-healer <path>` still work; leave explicit commands/options.
         if not args or (args[0] not in self.commands and not args[0].startswith("-")):
             args = [self.default_command, *args]
         return super().parse_args(ctx, args)
@@ -58,7 +65,7 @@ class _DefaultCommandGroup(TyperGroup):
 app = typer.Typer(
     help="AI-driven E2E test self-healing engine", cls=_DefaultCommandGroup, no_args_is_help=False
 )
-console = Console(stderr=True)
+console = Console(stderr=True)  # human output on stderr; JSON summary on stdout
 logger = structlog.get_logger(__name__)
 
 
@@ -68,7 +75,12 @@ def main(
         False, "--shadow", help="run the Shadow Testing runtime (under development)"
     ),
 ) -> None:
-    """AI-driven E2E test self-healing engine."""
+    """AI-driven E2E test self-healing engine.
+
+    Runs the repair loop by default (see ``heal``); ``--shadow`` routes into the
+    upcoming Shadow Testing runtime instead. Existing behavior is unchanged when
+    the flag is absent.
+    """
     if not shadow:
         return
     configure_logging(settings.log_level)
@@ -89,6 +101,11 @@ def main(
 
 
 def _read_diff(diff_file: Optional[Path], diff_base: Optional[str]) -> str:
+    """Return the git diff from a file, else `git diff [base...HEAD]`.
+
+    diff_base (e.g. a PR base ref) scopes the diff to `base...HEAD`, which is what
+    the CI/PR path needs; without it we fall back to the working-tree `git diff`.
+    """
     if diff_file is not None:
         assert_read_allowed(diff_file)
         return diff_file.read_text()
@@ -99,6 +116,7 @@ def _read_diff(diff_file: Optional[Path], diff_base: Optional[str]) -> str:
 
 
 def _render_diff(original: str, patched: str, path: str) -> None:
+    """Print a unified diff of the applied changes to the console (stderr)."""
     text = "".join(
         difflib.unified_diff(
             original.splitlines(keepends=True),
@@ -113,6 +131,10 @@ def _render_diff(original: str, patched: str, path: str) -> None:
 def _heal_file(
     test_path: Path, raw_log: str, dom_diff_context: list[dict], dry_run: bool
 ) -> RepairSummary:
+    """Run the repair graph on one test file and return its machine-readable summary.
+
+    Restores the original on failure or in dry-run mode; the diff is rendered to stderr.
+    """
     assert_read_allowed(test_path)
     assert_write_allowed(test_path, reason="repair_target")
     original_code = test_path.read_text()
@@ -147,6 +169,11 @@ def _heal_file(
 
 
 def _heal_suite(suite_target: str, dom_diff_context: list[dict], dry_run: bool) -> SuiteSummary:
+    """Run the whole suite (or a directory), then heal each failing test file.
+
+    ``suite_target`` empty means the whole suite. A per-file re-run gives each file a
+    focused failure log before healing; files that pass on re-run are recorded as fixed.
+    """
     passed, raw_log = run_playwright(suite_target)
     if passed:
         return SuiteSummary(total_failed=0, healed=0, is_success=True)
@@ -163,7 +190,7 @@ def _heal_suite(suite_target: str, dom_diff_context: list[dict], dry_run: bool) 
             logger.warning("failing_test_not_found", path=rel)
             continue
         rerun_passed, focused_log = run_playwright(rel)
-        if rerun_passed:
+        if rerun_passed:  # flaky or already fixed by an earlier file's patch
             results.append(RepairSummary(test_script_path=rel, is_success=True, loop_count=0))
             continue
         results.append(_heal_file(path, focused_log, dom_diff_context, dry_run))
@@ -177,6 +204,7 @@ def _heal_suite(suite_target: str, dom_diff_context: list[dict], dry_run: bool) 
 
 
 def _review_file(test_path: Path, raw_log: str, dom_diff_context: list[dict]) -> ReviewReport:
+    """Run the review graph on one test file and return its findings. Never writes the file."""
     assert_read_allowed(test_path)
     current_code = test_path.read_text()
     initial_state: AgentState = {
@@ -204,6 +232,7 @@ def _review_file(test_path: Path, raw_log: str, dom_diff_context: list[dict]) ->
 
 
 def _render_findings(report: ReviewReport) -> None:
+    """Print the review findings as a rich table to the console (stderr)."""
     if not report.findings:
         console.print("[dim]no findings[/dim]")
         return
@@ -248,7 +277,7 @@ def heal(
     configure_logging(settings.log_level)
     try:
         if app_url is not None:
-            settings.app_url = app_url
+            settings.app_url = app_url  # CLI flag overrides the E2E_HEALER_APP_URL setting
         if test_path is not None:
             assert_read_allowed(test_path)
             if not test_path.exists():
@@ -257,6 +286,7 @@ def heal(
 
         dom_diff_context = [d.model_dump() for d in analyze_diff(_read_diff(diff_file, diff_base))]
 
+        # Single-file mode: an existing file path.
         if test_path is not None and test_path.is_file():
             assert_write_allowed(test_path, reason="repair_target")
             if log_file is not None:
@@ -278,6 +308,7 @@ def heal(
             console.print(f"[bold]{status}[/bold] after {summary.loop_count} loop(s)")
             raise typer.Exit(code=0 if summary.is_success else 1)
 
+        # Suite mode: no path or a directory.
         suite = _heal_suite(
             str(test_path) if test_path is not None else "", dom_diff_context, dry_run
         )
@@ -317,7 +348,12 @@ def review(
         False, "--json", help="emit the ReviewReport JSON to stdout for the CI wrapper"
     ),
 ) -> None:
-    """Review a failing test and suggest source-level fixes as PR comments — never edits it."""
+    """Review a failing test and suggest source-level fixes as PR comments — never edits it.
+
+    Unlike ``heal``, this diagnoses the root cause and advises how to fix the *source*
+    (prefer accessible roles / a stable data-testid). Always exits 0 on a completed review;
+    the CI wrapper branches on ``has_findings`` in the JSON.
+    """
     configure_logging(settings.log_level)
     try:
         assert_read_allowed(test_path)
@@ -358,10 +394,12 @@ def init(
     """Analyze the repository and print a readiness report for E2E self-healing."""
     console.print(Panel("E2E Self-Heal Readiness Report", style="bold blue"))
 
+    # 1. Detect Playwright config
     pw_configs = list(Path(".").glob("playwright.config.*"))
     has_pw_config = len(pw_configs) > 0
     pw_config_name = pw_configs[0].name if has_pw_config else "None"
 
+    # 2. Detect test directory and count tests (exclude dependency directories)
     test_patterns = ["**/*.spec.ts", "**/*.test.ts", "**/*.spec.js", "**/*.test.js"]
     test_files = []
     for pattern in test_patterns:
@@ -375,6 +413,7 @@ def init(
     test_dirs = list(set(f.parent for f in test_files))
     test_dir_str = ", ".join(str(d) for d in test_dirs) if test_dirs else "Not found"
 
+    # 3. Check LLM provider configuration
     llm_provider = os.getenv("E2E_HEALER_LLM_PROVIDER", "nvidia (default)")
     has_api_key = bool(
         os.getenv("E2E_HEALER_LLM_API_KEY")
@@ -383,6 +422,7 @@ def init(
         or os.getenv("ANTHROPIC_API_KEY")
     )
 
+    # 4. Check if Playwright is in package.json
     pw_installed = False
     pkg_json = Path("package.json")
     if pkg_json.exists():
@@ -393,6 +433,7 @@ def init(
         except Exception:
             pass
 
+    # Build the report table
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column("Check", style="cyan", justify="right")
     table.add_column("Status", style="white")
@@ -423,9 +464,11 @@ def init(
     console.print(table)
     console.print()
 
+    # Compute readiness
     is_playwright_present = has_pw_config or pw_installed or test_count > 0
     is_ready = has_api_key and is_playwright_present
 
+    # Show warning if Playwright is absent
     if not is_playwright_present:
         console.print(
             Panel(
@@ -436,6 +479,7 @@ def init(
             )
         )
 
+    # Show configuration warning if API key is missing
     if not has_api_key:
         console.print(
             Panel(
@@ -447,6 +491,7 @@ def init(
             )
         )
 
+    # Show "Ready to Go" only if fully ready
     if is_ready:
         console.print(
             Panel(
@@ -471,6 +516,7 @@ def init(
         )
         exit_code = 1 if not is_playwright_present else 0
 
+    # Scaffolding (when explicitly requested)
     if scaffold:
         if WORKFLOW_TARGET_PATH.exists() and not force:
             console.print(

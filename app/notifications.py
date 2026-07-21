@@ -1,29 +1,60 @@
 """Slack notifier for heal outcomes (Issue #124)."""
 
-import json
 import urllib.error
 import urllib.request
+from typing import TypedDict
 
 import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.config import settings
-from app.schemas import RepairSummary
+from app.schemas import PatchInstruction, RepairSummary
 
 logger = structlog.get_logger(__name__)
+
+
+class SlackBlock(TypedDict):
+    """Type definition for Slack Block Kit block."""
+
+    type: str
+    text: dict | None
+    fields: list[dict] | None
+
+
+class SlackPayload(TypedDict):
+    """Type definition for Slack webhook payload."""
+
+    text: str
+    blocks: list[SlackBlock]
+
+
+def _is_transient_error(exception: BaseException) -> bool:
+    """Determine if an error is transient and should be retried.
+
+    Only retry on:
+    - Network errors (URLError, TimeoutError, ConnectionError)
+    - HTTP 429 (rate limit) or 5xx (server errors)
+    Do NOT retry on 4xx client errors (invalid webhook, auth failures, etc.)
+    """
+    if isinstance(exception, urllib.error.HTTPError):
+        # Only retry rate limits (429) and server errors (5xx)
+        return exception.code >= 429
+    return isinstance(exception, (urllib.error.URLError, TimeoutError, ConnectionError))
 
 
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((urllib.error.URLError, TimeoutError, ConnectionError)),
+    retry=retry_if_exception_type(_is_transient_error),
     reraise=True,
 )
-def _post_to_slack(payload: dict) -> None:
+def _post_to_slack(payload: SlackPayload) -> None:
     """Send a payload to the configured Slack webhook with retry logic."""
     url = settings.slack_webhook_url
     if not url:
         return
+
+    import json
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -33,20 +64,22 @@ def _post_to_slack(payload: dict) -> None:
         method="POST",
     )
 
-    with urllib.request.urlopen(req, timeout=10.0) as response:
-        if response.status >= 400:
-            raise urllib.error.HTTPError(
-                url, response.status, response.reason, response.headers, None
-            )
+    try:
+        with urllib.request.urlopen(req, timeout=10.0) as response:
+            if response.status >= 400:
+                raise urllib.error.HTTPError(
+                    url, response.status, response.reason, response.headers, None
+                )
+    except urllib.error.HTTPError as exc:
+        # Re-raise to trigger retry logic for transient errors
+        raise exc
 
-    logger.info("notification_sent", url=url)
+    # Log success without exposing the webhook URL
+    logger.info("notification_sent", status="success")
 
 
-def notify_heal_outcome(summary: RepairSummary) -> None:
-    """Post a concise summary of a heal run to Slack, if configured."""
-    if not settings.slack_webhook_url:
-        return
-
+def _build_payload(summary: RepairSummary) -> SlackPayload:
+    """Build a typed Slack payload from a repair summary."""
     outcome = "✅ Healed" if summary.is_success else "❌ Failed"
 
     selector_changes = []
@@ -70,7 +103,7 @@ def notify_heal_outcome(summary: RepairSummary) -> None:
         f"*Changes:*\n{changes_text}"
     )
 
-    payload = {
+    return {
         "text": text,
         "blocks": [
             {
@@ -95,8 +128,16 @@ def notify_heal_outcome(summary: RepairSummary) -> None:
         ],
     }
 
+
+def notify_heal_outcome(summary: RepairSummary) -> None:
+    """Post a concise summary of a heal run to Slack, if configured."""
+    if not settings.slack_webhook_url:
+        return
+
+    payload = _build_payload(summary)
+
     try:
         _post_to_slack(payload)
     except Exception as e:
-        # We log the error but don't fail the heal process because of a notification failure
+        # Log failure without exposing credentials
         logger.error("notification_failed", error=str(e))
