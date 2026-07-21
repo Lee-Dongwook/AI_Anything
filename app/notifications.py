@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 
 import structlog
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.config import settings
 from app.schemas import RepairSummary
@@ -13,15 +13,10 @@ from app.schemas import RepairSummary
 logger = structlog.get_logger(__name__)
 
 
-def is_transient_error(exception: BaseException) -> bool:
-    """Retry only on transient network errors."""
-    return isinstance(exception, (urllib.error.URLError, TimeoutError, ConnectionError))
-
-
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=is_transient_error,
+    retry=retry_if_exception_type((urllib.error.URLError, TimeoutError, ConnectionError)),
     reraise=True,
 )
 def _post_to_slack(payload: dict) -> None:
@@ -38,7 +33,6 @@ def _post_to_slack(payload: dict) -> None:
         method="POST",
     )
 
-    # We use urllib to avoid adding new dependencies
     with urllib.request.urlopen(req, timeout=10.0) as response:
         if response.status >= 400:
             raise urllib.error.HTTPError(
@@ -55,7 +49,6 @@ def notify_heal_outcome(summary: RepairSummary) -> None:
 
     outcome = "✅ Healed" if summary.is_success else "❌ Failed"
 
-    # Extract selector changes (before/after)
     selector_changes = []
     for instr in summary.instructions:
         before = instr.original.strip()

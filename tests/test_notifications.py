@@ -91,5 +91,5 @@ def test_retry_on_transient_error(mock_urlopen):
         # Should not raise an exception to the caller because notify_heal_outcome catches it
         notify_heal_outcome(make_summary())
 
-        # tenacity should have retried 3 times
+        # tenacity should have retried exactly 3 times
         assert mock_urlopen.call_count == 3
