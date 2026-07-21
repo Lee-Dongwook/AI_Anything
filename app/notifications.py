@@ -1,11 +1,12 @@
 """Slack notifier for heal outcomes (Issue #124)."""
 
+import json
 import urllib.error
 import urllib.request
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import structlog
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from app.config import settings
 from app.schemas import RepairSummary
@@ -13,19 +14,11 @@ from app.schemas import RepairSummary
 logger = structlog.get_logger(__name__)
 
 
-class SlackBlock(TypedDict):
-    """Type definition for Slack Block Kit block."""
-
-    type: str
-    text: dict | None
-    fields: list[dict] | None
-
-
 class SlackPayload(TypedDict):
     """Type definition for Slack webhook payload."""
 
     text: str
-    blocks: list[SlackBlock]
+    blocks: list[dict[str, Any]]
 
 
 def _is_transient_error(exception: BaseException) -> bool:
@@ -45,7 +38,7 @@ def _is_transient_error(exception: BaseException) -> bool:
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type(_is_transient_error),
+    retry=retry_if_exception(_is_transient_error),
     reraise=True,
 )
 def _post_to_slack(payload: SlackPayload) -> None:
@@ -53,8 +46,6 @@ def _post_to_slack(payload: SlackPayload) -> None:
     url = settings.slack_webhook_url
     if not url:
         return
-
-    import json
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
