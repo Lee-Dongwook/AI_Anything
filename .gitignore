@@ -36,4 +36,4 @@ repair-summary.json
 .DS_Store
 
 .vscode/
-settings.json
+/settings.json
