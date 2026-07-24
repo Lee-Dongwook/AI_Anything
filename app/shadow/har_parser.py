@@ -36,7 +36,7 @@ class HarTraceParser(ITraceParser):
 
         logger.info("har_parse_started", path=str(path))
         try:
-            document = json.loads(path.read_text(encoding="utf-8"))
+            document = json.loads(path.read_text(encoding="utf-8-sig"))
         except json.JSONDecodeError as exc:
             logger.exception("har_json_invalid", path=str(path))
             raise InvalidHarFileError(f"HAR file is not valid JSON: {path}") from exc
@@ -44,7 +44,7 @@ class HarTraceParser(ITraceParser):
             logger.exception("har_file_unreadable", path=str(path))
             raise InvalidHarFileError(f"Failed to read HAR file: {path}") from exc
 
-        entries = self._entries_from_document(document, path)
+        entries = self._ordered_entries(self._entries_from_document(document, path))
         snapshots: list[NetworkSnapshot] = []
         for entry_index, entry in enumerate(entries):
             snapshot = self._to_network_snapshot(entry, len(snapshots))
@@ -65,6 +65,19 @@ class HarTraceParser(ITraceParser):
         if not isinstance(log, dict) or not isinstance(log.get("entries"), list):
             raise InvalidHarFileError(f"HAR file has no log.entries list: {path}")
         return log["entries"]
+
+    @staticmethod
+    def _ordered_entries(entries: list[object]) -> list[object]:
+        """Order timestamped entries chronologically and keep fallback ordering stable."""
+        return sorted(entries, key=HarTraceParser._entry_sort_key)
+
+    @staticmethod
+    def _entry_sort_key(entry: object) -> tuple[bool, float]:
+        """Sort invalid or missing timestamps after valid timestamps."""
+        if not isinstance(entry, dict):
+            return True, 0.0
+        started_at = started_at_from_har(entry)
+        return started_at is None, started_at or 0.0
 
     @staticmethod
     def _to_network_snapshot(entry: object, sequence: int) -> NetworkSnapshot | None:

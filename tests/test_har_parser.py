@@ -12,6 +12,31 @@ from app.shadow.trace_parser import TraceParseError
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample.har"
 
 
+def _entry(
+    url: str, *, started_at: str | None = None, post_data: dict | None = None
+) -> dict[str, object]:
+    request: dict[str, object] = {
+        "method": "POST" if post_data else "GET",
+        "url": url,
+        "headers": [],
+    }
+    if post_data is not None:
+        request["postData"] = post_data
+
+    entry: dict[str, object] = {
+        "request": request,
+        "response": {"status": 200, "headers": [], "content": {"text": "ok"}},
+    }
+    if started_at is not None:
+        entry["startedDateTime"] = started_at
+    return entry
+
+
+def _write_har(path: Path, entries: list[dict]) -> Path:
+    path.write_text(json.dumps({"log": {"entries": entries}}), encoding="utf-8")
+    return path
+
+
 def test_implements_trace_parser_contract() -> None:
     assert isinstance(HarTraceParser(), ITraceParser)
 
@@ -68,6 +93,131 @@ def test_empty_entries_returns_empty_list(tmp_path: Path) -> None:
     path.write_text('{"log":{"version":"1.2","entries":[]}}', encoding="utf-8")
 
     assert HarTraceParser().parse(path) == []
+
+
+def test_accepts_utf8_bom(tmp_path: Path) -> None:
+    path = tmp_path / "bom.har"
+    document = json.dumps({"log": {"entries": [_entry("https://example.com")]}})
+    path.write_text(document, encoding="utf-8-sig")
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert len(snapshots) == 1
+
+
+def test_reconstructs_urlencoded_post_data_params(tmp_path: Path) -> None:
+    path = _write_har(
+        tmp_path / "form.har",
+        [
+            _entry(
+                "https://example.com/form",
+                post_data={
+                    "mimeType": "application/x-www-form-urlencoded",
+                    "params": [
+                        {"name": "query", "value": "hello world"},
+                        {"name": "tag", "value": "a&b"},
+                    ],
+                },
+            )
+        ],
+    )
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert snapshots[0].request.body == "query=hello+world&tag=a%26b"
+
+
+def test_post_data_text_takes_precedence_over_params(tmp_path: Path) -> None:
+    path = _write_har(
+        tmp_path / "text.har",
+        [
+            _entry(
+                "https://example.com/form",
+                post_data={
+                    "mimeType": "application/x-www-form-urlencoded",
+                    "text": "raw=body",
+                    "params": [{"name": "ignored", "value": "value"}],
+                },
+            )
+        ],
+    )
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert snapshots[0].request.body == "raw=body"
+
+
+def test_reconstructs_multipart_post_data_params(tmp_path: Path) -> None:
+    path = _write_har(
+        tmp_path / "multipart.har",
+        [
+            _entry(
+                "https://example.com/upload",
+                post_data={
+                    "mimeType": "multipart/form-data; boundary=test-boundary",
+                    "params": [
+                        {"name": "description", "value": "example"},
+                        {
+                            "name": "upload",
+                            "value": "file contents",
+                            "fileName": "sample.txt",
+                            "contentType": "text/plain",
+                        },
+                    ],
+                },
+            )
+        ],
+    )
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert snapshots[0].request.body == (
+        '--test-boundary\r\nContent-Disposition: form-data; name="description"'
+        '\r\n\r\nexample\r\n--test-boundary\r\nContent-Disposition: form-data; name="upload"; '
+        'filename="sample.txt"\r\nContent-Type: text/plain\r\n\r\nfile contents\r\n'
+        "--test-boundary--\r\n"
+    )
+
+
+def test_orders_entries_chronologically_and_assigns_sequence(tmp_path: Path) -> None:
+    path = _write_har(
+        tmp_path / "ordered.har",
+        [
+            _entry("https://example.com/third", started_at="2026-07-24T12:00:03Z"),
+            _entry("https://example.com/first", started_at="2026-07-24T12:00:01Z"),
+            _entry("https://example.com/second", started_at="2026-07-24T12:00:02Z"),
+        ],
+    )
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert [snapshot.request.url for snapshot in snapshots] == [
+        "https://example.com/first",
+        "https://example.com/second",
+        "https://example.com/third",
+    ]
+    assert [snapshot.sequence for snapshot in snapshots] == [0, 1, 2]
+
+
+def test_entries_without_valid_timestamps_sort_last_in_source_order(tmp_path: Path) -> None:
+    path = _write_har(
+        tmp_path / "fallback-order.har",
+        [
+            _entry("https://example.com/missing"),
+            _entry("https://example.com/later", started_at="2026-07-24T12:00:02Z"),
+            _entry("https://example.com/invalid", started_at="not-a-timestamp"),
+            _entry("https://example.com/earlier", started_at="2026-07-24T12:00:01Z"),
+        ],
+    )
+
+    snapshots = HarTraceParser().parse(path)
+
+    assert [snapshot.request.url for snapshot in snapshots] == [
+        "https://example.com/earlier",
+        "https://example.com/later",
+        "https://example.com/missing",
+        "https://example.com/invalid",
+    ]
 
 
 @pytest.mark.parametrize(
