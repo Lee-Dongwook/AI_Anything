@@ -11,11 +11,17 @@ snapshot assembly, persistence and replay are later stages.
 import base64
 import json
 import zipfile
-from datetime import datetime
 from pathlib import Path
 
 import structlog
 
+from app.shadow.har_entry import (
+    duration_ms_from_har,
+    headers_to_dict,
+    request_from_har,
+    response_from_har,
+    started_at_from_har,
+)
 from app.shadow.interfaces import ITraceParser
 from app.shadow.schemas import CapturedRequest, CapturedResponse, NetworkSnapshot
 
@@ -153,39 +159,17 @@ class PlaywrightTraceParser(ITraceParser):
 
     def _to_request(self, request: dict | None) -> CapturedRequest | None:
         """Map a HAR request object onto :class:`CapturedRequest`."""
-        if not isinstance(request, dict):
-            return None
-        method = request.get("method")
-        url = request.get("url")
-        if not isinstance(method, str) or not isinstance(url, str) or not method or not url:
-            return None
-
-        post_data = request.get("postData")
-        body = post_data.get("text") if isinstance(post_data, dict) else None
-        return CapturedRequest(
-            method=method,
-            url=url,
-            headers=self._headers_to_dict(request.get("headers")),
-            body=body if isinstance(body, str) else None,
-        )
+        return request_from_har(request)
 
     def _to_response(
         self, archive: zipfile.ZipFile, response: dict | None
     ) -> CapturedResponse | None:
         """Map a HAR response object onto :class:`CapturedResponse`."""
-        if not isinstance(response, dict):
-            return None
-        status = response.get("status")
-        # Playwright records 0/-1 when no response ever arrived.
-        if not isinstance(status, int) or status <= 0:
-            return None
-
-        body, is_base64 = self._resolve_response_body(archive, response.get("content"))
-        return CapturedResponse(
-            status=status,
-            headers=self._headers_to_dict(response.get("headers")),
-            body=body,
-            is_base64=is_base64,
+        return response_from_har(
+            response,
+            lambda content: self._resolve_response_body(
+                archive, content if isinstance(content, dict) else None
+            ),
         )
 
     def _resolve_response_body(
@@ -229,18 +213,7 @@ class PlaywrightTraceParser(ITraceParser):
     @staticmethod
     def _headers_to_dict(headers: object) -> dict[str, str]:
         """Convert HAR ``[{"name", "value"}]`` header lists into a plain dict."""
-        result: dict[str, str] = {}
-        if not isinstance(headers, list):
-            return result
-        for header in headers:
-            if not isinstance(header, dict):
-                continue
-            name = header.get("name")
-            if not isinstance(name, str) or not name:
-                continue
-            value = header.get("value")
-            result[name] = value if isinstance(value, str) else ""
-        return result
+        return headers_to_dict(headers)
 
     @staticmethod
     def _monotonic_time(entry: dict) -> float:
@@ -251,16 +224,9 @@ class PlaywrightTraceParser(ITraceParser):
     @staticmethod
     def _started_at(entry: dict) -> float | None:
         """Parse the HAR ``startedDateTime`` (ISO 8601) into epoch seconds."""
-        started = entry.get("startedDateTime")
-        if not isinstance(started, str) or not started:
-            return None
-        try:
-            return datetime.fromisoformat(started.replace("Z", "+00:00")).timestamp()
-        except ValueError:
-            return None
+        return started_at_from_har(entry)
 
     @staticmethod
     def _duration_ms(entry: dict) -> float | None:
         """Return the HAR ``time`` (total duration in ms) when numeric."""
-        value = entry.get("time")
-        return float(value) if isinstance(value, (int, float)) else None
+        return duration_ms_from_har(entry)

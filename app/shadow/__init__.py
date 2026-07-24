@@ -35,6 +35,7 @@ from app.shadow.trace_parser import (
     PlaywrightTraceParser,
     TraceParseError,
 )
+from app.shadow.har_parser import HarTraceParser, InvalidHarFileError
 from app.shadow.workspace import ShadowWorkspace
 
 __all__ = [
@@ -62,8 +63,10 @@ __all__ = [
     "SnapshotNotFoundError",
     "SnapshotCorruptionError",
     "PlaywrightTraceParser",
+    "HarTraceParser",
     "TraceParseError",
     "InvalidTraceArchiveError",
+    "InvalidHarFileError",
     "ShadowWorkspace",
     "InMemorySnapshotStore",
 ]
