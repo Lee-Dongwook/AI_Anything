@@ -80,8 +80,9 @@ The downstream Snapshot Store wraps this list into a `ShadowSnapshot` when persi
 [`ITraceParser`](../app/shadow/interfaces.py) interface — it reads a Playwright `trace.zip`
 and extracts its `resource-snapshot` (HAR) entries into `NetworkSnapshot`s. The `parse()`
 method returns `list[NetworkSnapshot]` directly, matching the `ITraceParser` interface.
-A standalone `.har`-file parser (a different input format) is still an open extension point
-(see [Extension points](#extension-points)). It is the analogue of the Error Log Parser in
+[`HarTraceParser`](../app/shadow/har_parser.py) implements the same contract for standalone
+HAR 1.x exports, so downstream storage and replay code receives the same validated models
+regardless of capture format. The parser layer is the analogue of the Error Log Parser in
 the heal pipeline: it keeps noisy, oversized raw input from flowing downstream unabstracted.
 
 ### 3. Snapshot Store
@@ -166,7 +167,7 @@ returns_, not _how the test is executed_.
 
 | Pipeline stage      | Interface (`interfaces.py`) | Concrete component                                  | Status            |
 | ------------------- | --------------------------- | --------------------------------------------------- | ----------------- |
-| Trace Parser        | `ITraceParser`              | `PlaywrightTraceParser` (`trace_parser.py`)         | ✅ implemented (v0.4) |
+| Trace Parser        | `ITraceParser`              | `PlaywrightTraceParser` (`trace_parser.py`) + `HarTraceParser` (`har_parser.py`) | ✅ implemented |
 | Snapshot Store      | `ISnapshotStore`            | `SnapshotStore` (`snapshot_store.py`)               | ✅ implemented (#48) |
 | Mock Injector       | `IMockInjector`             | `MockInjector` + `SnapshotMatcher`                  | ✅ implemented (#43) |
 | Shadow Runtime      | `IShadowRuntime` / `IShadowWorkspace` | `ShadowRuntime` (`runtime.py`) + `ShadowWorkspace` (`workspace.py`) | ✅ implemented |
@@ -199,8 +200,9 @@ Playwright as a silent bad replay.
 Where future Shadow Testing work is expected to plug in:
 
 - **Trace Parser implementations** — implement `ITraceParser.parse` for concrete formats
-  (Playwright `trace.zip`, HAR, a custom capture). The rest of the pipeline is agnostic to
-  the source format as long as the output is a `ShadowSnapshot`.
+  beyond the shipped Playwright `trace.zip` and standalone HAR parsers. The rest of the
+  pipeline is agnostic to the source format as long as the output is a
+  `list[NetworkSnapshot]`.
 - **Matching strategies** — `SnapshotMatcher` currently does exact-then-path matching.
   Additional strategies (header/body-aware matching, query-param normalization, fuzzy or
   ordered matching) can extend or replace it without touching the injector.
